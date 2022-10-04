@@ -64,6 +64,7 @@
 #include "debug/ExecFaulting.hh"
 #include "debug/HtmCpu.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/SpecCheck.hh"
 #include "params/BaseO3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
@@ -1313,7 +1314,7 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
     rob->retireHead(tid);
 
 #if TRACING_ON
-    if (debug::O3PipeView) {
+    if (debug::O3PipeView || debug::SpecCheck) {
         head_inst->commitTick = curTick() - head_inst->fetchTick;
     }
 #endif
