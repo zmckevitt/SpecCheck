@@ -65,9 +65,6 @@
 #include "cpu/translation.hh"
 #include "debug/HtmCpu.hh"
 
-extern int numFlushedWindows;
-extern int fsmState;
-
 namespace gem5
 {
 

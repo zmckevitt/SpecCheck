@@ -43,6 +43,7 @@
 #include <algorithm>
 
 #include "base/intmath.hh"
+#include "cpu/o3/SpecCheck.hh"
 #include "debug/DynInst.hh"
 #include "debug/IQ.hh"
 #include "debug/O3PipeView.hh"
@@ -188,8 +189,9 @@ DynInst::operator new(size_t count, Arrays &arrays)
     return buf;
 }
 
-int numFlushedWindows = 0;
-int fsmState = 0;
+extern int currentFsmState;
+int counter = 0;
+extern std::map<std::string, int>registers;
 
 DynInst::~DynInst()
 {
@@ -244,26 +246,22 @@ DynInst::~DynInst()
                     val, valS);
         }
     }
+#endif
     if (debug::SpecCheck) {
         Tick fetch = fetchTick;
         if (fetch != -1) {
-                // printf("Inst: %s, PC: 0x%08llx, fetch: %llu\n",
-                //        staticInst->disassemble(pcState().instAddr()),
-                //        pcState().instAddr(),
-                //        fetch);
-                if (commitTick == -1 && fsmState == 0) {
-                        fsmState = 1;
-                }
-                if (commitTick != -1 && fsmState == 1) {
-                        numFlushedWindows++;
-                        fsmState = 0;
-
-                        printf("Misspeculated window found!");
-                        printf("Current number: %d\n", numFlushedWindows);
+                int status = consume_instruction
+                                (staticInst->disassemble(pcState().instAddr()),
+                                 pcState().instAddr(), commitTick, issueTick,
+                                 completeTick, staticInst);
+                if (status < 0) {
+                        std::cout << "FSM error, unrecognized instruction: " <<
+                                staticInst->disassemble(pcState().instAddr())
+                                << std::endl;
                 }
         }
     }
-#endif
+// #endif
 
     delete [] memData;
     delete traceData;
