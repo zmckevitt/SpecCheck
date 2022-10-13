@@ -192,12 +192,13 @@ int consume_instruction(std::string inst,
 
     else if (currentFsmState == Q_1) {
 
+        // Retired instruction
+        // goto Q_INIT
+        if (commit != -1) {
+            currentFsmState = Q_INIT;
+        }
         // If flushed non memory inst or flushed mem inst that doesnt execute
         // do nothing
-        if ((is_memory_op(staticInst) && issue == -1)
-            || !is_memory_op(staticInst)) {
-            // return 0;
-        }
         // If flushed mem inst that completes
         // Change state, add dst to register array
         else if (is_memory_op(staticInst) && issue != -1) {
@@ -207,10 +208,9 @@ int consume_instruction(std::string inst,
             else
                 return -1;
         }
-        // Retired instruction
-        // goto Q_INIT
-        else if (commit != -1) {
-            currentFsmState = Q_INIT;
+        else if ((is_memory_op(staticInst) && issue == -1)
+            || !is_memory_op(staticInst)) {
+            // return 0;
         }
         // Should never reach here...
         else {
@@ -223,14 +223,31 @@ int consume_instruction(std::string inst,
         if (commit != -1 && PC == savedPC) {
             currentFsmState = Q_INIT;
         }
+
+        // CHECK IF THESE INSTRUCTIONS ACTUALLY EXECUTE!
         else if (registers.find(src1) != registers.end()
-                && registers[src1] == 1) {
-            currentFsmState = Q_3;
+                && registers[src1] == 1
+                && issue != -1) {
+
+                if (commit != -1 && PC != savedPC) {
+                        currentFsmState = Q_ACC;
+                }
+                else {
+                        currentFsmState = Q_3;
+                }
         }
         else if (registers.find(src2) != registers.end()
-                && registers[src2] == 1) {
-            currentFsmState = Q_3;
+                && registers[src2] == 1
+                && issue != -1) {
+
+                if (commit != -1 && PC != savedPC) {
+                        currentFsmState = Q_ACC;
+                }
+                else {
+                        currentFsmState = Q_3;
+                }
         }
+
         else if (is_memory_op(staticInst) && issue != -1) {
                 if (registers.find(dest) != registers.end())
                     registers[dest] = 1;
@@ -286,11 +303,13 @@ int consume_instruction(std::string inst,
         // If retired inst
         else if (commit != -1) {
             if (registers.find(src1) != registers.end()
-                && registers[src1] == 1) {
+                && registers[src1] == 1
+                && issue != -1) {
                 currentFsmState = Q_3;
             }
             else if (registers.find(src2) != registers.end()
-                && registers[src2] == 1) {
+                && registers[src2] == 1
+                && issue != -1) {
                 currentFsmState = Q_3;
             }
             // if memory op that executes
@@ -336,12 +355,12 @@ int consume_instruction(std::string inst,
         if (std::find(PCs.begin(), PCs.end(), savedPC) == PCs.end()) {
             PCs.push_back(savedPC);
             numVulnWindows++;
-            currentFsmState = Q_INIT;
             printf("Vulnerable speculative code found!\n");
             printf("Misspeculation window beginning at \
                         0x%08llx is vulnerable!\n",savedPC);
             printf("Total number of malicious windows: %d\n", numVulnWindows);
         }
+        currentFsmState = Q_INIT;
         return 0;
     }
 
