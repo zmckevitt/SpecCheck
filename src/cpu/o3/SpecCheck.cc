@@ -219,13 +219,6 @@ int consume_instruction(std::string inst,
     }
 
     else if (currentFsmState == Q_2) {
-        // If flushed non mem inst or flushed mem inst that doesnt execute
-        // do not change state
-        //if ((is_memory_op(staticInst) && issue == -1)
-                // || !is_memory_op(staticInst)) {
-            // return 0;
-        //}
-        // If we have a flushed mem that executes
 
         if (commit != -1 && PC == savedPC) {
             currentFsmState = Q_INIT;
@@ -239,52 +232,19 @@ int consume_instruction(std::string inst,
             currentFsmState = Q_3;
         }
         else if (is_memory_op(staticInst) && issue != -1) {
-
-            // Check if src registers are in register array
-            // if (registers.find(src1) != registers.end()
-                // && registers[src1] == 1) {
-            // 	currentFsmState = Q_3;
-            // }
-            // else if (registers.find(src2) != registers.end()
-                // && registers[src2] == 1) {
-            // 	currentFsmState = Q_3;
-            // }
-
-            // Otherwise, add destination to register array and change state
-            // else {
                 if (registers.find(dest) != registers.end())
                     registers[dest] = 1;
                 else
                     return -1;
-            // }
         }
-        // If we have a retired instruction AND PC == savedPC
-        // goto Q_INIT
-        // else if (commit != -1 && PC == savedPC) {
-        // 	currentFsmState = Q_INIT;
-        // }
-        // If we see a retired mem inst AND PC != savedPC
         else if (commit != -1 && PC != savedPC) {
             // If mem inst and executes
             if (is_memory_op(staticInst) && issue != -1) {
-                // If src registers in reg array, goto accept
-                // if (registers.find(src1) != registers.end()
-                        // && registers[src1] == 1) {
-                // 	currentFsmState = Q_ACC;
-                // }
-                // else if (registers.find(src2) != registers.end()
-                        // && registers[src2] == 1) {
-                // 	currentFsmState = Q_ACC;
-                // }
-                // If src registers not in reg array, remove dst from reg array
-                // Change state
-                // else {
                     currentFsmState = Q_4;
                     if (registers.find(dest) != registers.end())
                         registers[dest] = 0;
                     else
                         return -1;
-                // }
             }
             // Non memory instruction or mem inst that doesnt execute
             // change state
@@ -335,24 +295,10 @@ int consume_instruction(std::string inst,
             }
             // if memory op that executes
             else if (is_memory_op(staticInst) && issue != -1) {
-                // if src registers in reg array
-                // goto q_acc
-                // if (registers.find(src1) != registers.end()
-                        // && registers[src1] == 1) {
-                // 	currentFsmState = Q_ACC;
-                // }
-                // else if (registers.find(src2) != registers.end()
-                        // && registers[src2] == 1) {
-                // 	currentFsmState = Q_ACC;
-                // }
-                // src registers not in reg array, remove dst from reg arr
-                // do not change state
-                // else {
                     if (registers.find(dest) != registers.end())
                         registers[dest] = 0;
                     else
                         return -1;
-                // }
             }
             // otherwise any retired instruction
             // do not change state
