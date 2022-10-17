@@ -166,14 +166,14 @@ int consume_instruction(std::string inst,
         else {
             // If instruction is mem op that doesnt execute or non mem op
             // Save PC, change state
-            if ((is_memory_op(staticInst) && issue == -1)
+            if ((is_memory_op(staticInst) && complete == -1)
                 || !is_memory_op(staticInst)) {
                 currentFsmState = Q_1;
                 savedPC = PC;
             }
             // If instruction is memory op that executes
             // Save PC, change state
-            else if (is_memory_op(staticInst) && issue != -1){
+            else if (is_memory_op(staticInst) && complete != -1){
                 currentFsmState = Q_2;
                 savedPC = PC;
                 // add destination register to register array
@@ -201,14 +201,14 @@ int consume_instruction(std::string inst,
         // do nothing
         // If flushed mem inst that completes
         // Change state, add dst to register array
-        else if (is_memory_op(staticInst) && issue != -1) {
+        else if (is_memory_op(staticInst) && complete != -1) {
             currentFsmState = Q_2;
             if (registers.find(dest) != registers.end())
                 registers[dest] = 1;
             else
                 return -1;
         }
-        else if ((is_memory_op(staticInst) && issue == -1)
+        else if ((is_memory_op(staticInst) && complete == -1)
             || !is_memory_op(staticInst)) {
             // return 0;
         }
@@ -222,6 +222,11 @@ int consume_instruction(std::string inst,
 
         if (commit != -1 && PC == savedPC) {
             currentFsmState = Q_INIT;
+        }
+
+        // If we retire before seeing a flushed inst use a register
+        if (commit != -1) {
+                currentFsmState = Q_INIT;
         }
 
         // CHECK IF THESE INSTRUCTIONS ACTUALLY EXECUTE!
@@ -248,7 +253,7 @@ int consume_instruction(std::string inst,
                 }
         }
 
-        else if (is_memory_op(staticInst) && issue != -1) {
+        else if (is_memory_op(staticInst) && complete != -1) {
                 if (registers.find(dest) != registers.end())
                     registers[dest] = 1;
                 else
@@ -256,7 +261,7 @@ int consume_instruction(std::string inst,
         }
         else if (commit != -1 && PC != savedPC) {
             // If mem inst and executes
-            if (is_memory_op(staticInst) && issue != -1) {
+            if (is_memory_op(staticInst) && complete != -1) {
                     currentFsmState = Q_4;
                     if (registers.find(dest) != registers.end())
                         registers[dest] = 0;
@@ -313,7 +318,7 @@ int consume_instruction(std::string inst,
                 currentFsmState = Q_3;
             }
             // if memory op that executes
-            else if (is_memory_op(staticInst) && issue != -1) {
+            else if (is_memory_op(staticInst) && complete != -1) {
                     if (registers.find(dest) != registers.end())
                         registers[dest] = 0;
                     else
@@ -328,7 +333,7 @@ int consume_instruction(std::string inst,
         // flushed instruction
         else {
             // if memory inst that executes, goto Q_2
-            if (is_memory_op(staticInst) && issue != -1) {
+            if (is_memory_op(staticInst) && complete != -1) {
                 clear_register_array();
                 savedPC = PC;
                 if (registers.find(dest) != registers.end())
@@ -336,7 +341,7 @@ int consume_instruction(std::string inst,
                 currentFsmState = Q_2;
             }
             // otherwise goto Q_1
-            else if ((is_memory_op(staticInst) && issue == -1)
+            else if ((is_memory_op(staticInst) && complete == -1)
                 || !is_memory_op(staticInst)){
                 clear_register_array();
                 savedPC = PC;
