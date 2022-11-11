@@ -18,7 +18,6 @@ extern int numFlushedWindows;
 extern int numVulnWindows;
 extern int currentFsmState;
 extern unsigned long long savedPC;
-extern std::map<std::string, int>registers;
 extern std::vector<unsigned long long>PCs;
 
 enum fsmStates
@@ -31,20 +30,14 @@ enum fsmStates
         Q_ACC
 };
 
-int register_array_empty();
-
-void clear_register_array();
-
-// function to determine whether or not a given instruction
-// is a (vulnerable) memory operation
-// i.e. loads
-// int is_memory_op(std::string inst);
-
 int consume_instruction(std::string inst,
                         unsigned long long PC,
-                        Tick commit, Tick issue,
-                        Tick complete,
-                        StaticInstPtr staticInst);
+                        bool commit,
+                        bool issue,
+                        bool complete,
+                        StaticInstPtr staticInst,
+                        DynInstPtr dynInst);
+
 
 } // namespace 03
 } // namespace gem5

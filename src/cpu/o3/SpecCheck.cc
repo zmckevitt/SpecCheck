@@ -9,363 +9,191 @@ int numVulnWindows = 0;
 int currentFsmState = Q_INIT;
 unsigned long long savedPC = -1;
 std::vector<unsigned long long>PCs;
+std::vector<PhysRegIdPtr>registers;
 
-// INCLUDE SUPPORT FOR EBP AND OTHER 32 BIT REGISTERS
-// If register is not in map, ignore?
+int in_destination_array(PhysRegIdPtr reg) {
+    return (std::find(registers.begin(), registers.end(), reg)
+             != registers.end());
+}
 
-// Register mapping
-// Any registers set to 1 are "in" the register array
-// Removing a regsiter sets it to 0
-// An "empty" register array is all 0s
-// https://www.tortall.net/projects/yasm/manual/html/arch-x86/x86-registers.png
-
-// FIX THESE TO
-
-std::map<std::string, int>registers = {
-    {"rax", 0}, {"eax",  0}, {"ax",   0}, {"ah",   0}, {"al", 0},
-    {"rbx", 0}, {"ebx",  0}, {"bx",   0}, {"bh",   0}, {"bl", 0},
-    {"rcx", 0}, {"ecx",  0}, {"cx",   0}, {"ch",   0}, {"cl", 0},
-    {"rdx", 0}, {"edx",  0}, {"dx",   0}, {"dh",   0}, {"dl", 0},
-    {"rsi", 0}, {"esi",  0}, {"si",   0}, {"sil",  0},
-    {"rdi", 0}, {"edi",  0}, {"di",   0}, {"dil",  0},
-    {"rsp", 0}, {"esp",  0}, {"sp",   0}, {"spl",  0},
-    {"rbp", 0}, {"ebp",  0}, {"bp",   0}, {"bpl",  0},
-    {"r8",  0}, {"r8d",  0}, {"r8w",  0}, {"r8b",  0},
-    {"r9",  0}, {"r9d",  0}, {"r9w",  0}, {"r9b",  0},
-    {"r10", 0}, {"r10d", 0}, {"r10w", 0}, {"r10b", 0},
-    {"r11", 0}, {"r11d", 0}, {"r11w", 0}, {"r11b", 0},
-    {"r12", 0}, {"r12d", 0}, {"r12w", 0}, {"r12b", 0},
-    {"r13", 0}, {"r13d", 0}, {"r13w", 0}, {"r13b", 0},
-    {"r14", 0}, {"r14d", 0}, {"r14w", 0}, {"r14b", 0},
-    {"r15", 0}, {"r15d", 0}, {"r15w", 0}, {"r15b", 0},
-    {"t0",  0}, {"t0d",  0}, {"t0w",  0}, {"t0b",  0},
-    {"t1",  0}, {"t1d",  0}, {"t1w",  0}, {"t1b",  0},
-    {"t2",  0}, {"t2d",  0}, {"t2w",  0}, {"t2b",  0},
-    {"t3",  0}, {"t3d",  0}, {"t3w",  0}, {"t3b",  0},
-    {"t4",  0}, {"t4d",  0}, {"t4w",  0}, {"t4b",  0},
-    {"t5",  0}, {"t5d",  0}, {"t5w",  0}, {"t5b",  0},
-    {"t6",  0}, {"t6d",  0}, {"t6w",  0}, {"t6b",  0},
-    {"t7",  0}, {"t7d",  0}, {"t7w",  0}, {"t7b",  0}
-};
+void set_destination(PhysRegIdPtr reg) {
+    registers.push_back(reg);
+}
 
 int register_array_empty() {
-    std::map<std::string, int>::iterator it;
-    for (it = registers.begin(); it != registers.end(); it++) {
-        // check if value is 1
-        if (it->second == 1) {
-            return 0;
-        }
-    }
-    // No 1s found
-    return 1;
+    return registers.empty();
 }
 
 void clear_register_array() {
-    std::map<std::string, int>::iterator it;
-    for (it = registers.begin(); it != registers.end(); it++) {
-        // set values to 0
-        it->second = 0;
-    }
-
+    registers.clear();
 }
-
-// CHANGE TO IS IT A LOAD
-// idea, staticInst->isLoad() or staticInst->isStore()
-// instead of checking memory operations?
-// int is_memory_op(std::string inst) {
-//
-// 	// get the macroop
-// 	// remove leading spaces
-// 	inst.erase(0,2);
-// 	std::string macroop;
-// 	std::string delim = " ";
-// 	size_t pos = inst.find(delim);
-// 	macroop = inst.substr(0,pos);
-//
-// 	// Add more later!
-// 	if (macroop == "MOV_R_M" ||
-// 	  macroop == "MOV_M_R" ){
-// 		return 1;
-// 	}
-//
-// 	return 0;
-// }
 
 int is_memory_op(StaticInstPtr staticInst) {
     return staticInst->isLoad();
 }
 
-std::string get_dest_register(std::string inst) {
-    std::string token;
-    std::string delim = "   ";
-    size_t pos = inst.find(delim);
-    inst.erase(0, pos + delim.length());
-    token = inst.substr(0, pos);
-    delim = ", ";
-    pos = token.find(delim);
-    return token.substr(0, pos);
-}
 
-std::string get_src1_register(std::string inst) {
-    std::string delim = "   ";
-    size_t pos = inst.find(delim);
-    inst.erase(0, pos + delim.length());
-    delim = ", ";
-    pos = inst.find(delim);
-    inst.erase(0, pos + delim.length());
-    pos = inst.find(delim);
-    return inst.substr(0,pos);
-}
+#include <fstream>
 
-std::string get_src2_register(std::string inst) {
-    std::string delim = "   ";
-    size_t pos = inst.find(delim);
-    inst.erase(0, pos + delim.length());
-    delim = ", ";
-    pos = inst.find(delim);
-    inst.erase(0, pos + delim.length());
-    pos = inst.find(delim);
-
-    if (pos != std::string::npos) {
-        inst.erase(0, pos + delim.length());
-        return inst;
-    }
-    else {
-        return "";
-    }
-}
-
-// TODO: UPDATE FSM TO INCLUDE COMPLETES!!!
-// TODO: modify logic to NOT consume additional
-// instruction once the ACC state has been reached
-// TODO: when checking src, doesnt matter
-// Maybe change input parameters to whole instruction?
-// FSM transition function
-// Consumes the instruction and changes state
 int consume_instruction(std::string inst,
             unsigned long long PC,
-            Tick commit,
-            Tick issue,
-            Tick complete,
-            StaticInstPtr staticInst) {
+            bool commit,
+            bool issue,
+            bool complete,
+            StaticInstPtr staticInst,
+            DynInstPtr dynInst) {
 
-    std::string dest = get_dest_register(inst);
-    std::string src1 = get_src1_register(inst);
-    std::string src2 = get_src2_register(inst);
+    size_t numSrcs = dynInst->numSrcs();
+    size_t numDsts = dynInst->numDests();
+
+    PhysRegIdPtr dest = 0;
+    PhysRegIdPtr src1 = 0;
+    PhysRegIdPtr src2 = 0;
+
+    if (numDsts > 0)
+        dest = dynInst->renamedDestIdx(0);
+    if (numSrcs > 0) {
+        src1 = dynInst->renamedSrcIdx(0);
+        if (numSrcs > 1) {
+            src2 = dynInst->renamedSrcIdx(1);
+        }
+    }
+
+
+    //std::ofstream file;
+    //file.open("/ext/zamc2229/blank_windows.txt", std::ios_base::app);
+    //file << inst << " Dest: " << dest
+    //     << " src1: " << src1
+    //     << " src2: " << src2
+    //     << " issue: " << issue
+    //     << " complete: " << complete
+    //     << " commit: " << commit
+    //     << " STATE: " << currentFsmState
+    //     << std::endl;
 
     if (currentFsmState == Q_INIT) {
         clear_register_array();
         savedPC = -1;
-        // instruction retires
-        // do not change state
-        if (commit != -1) {
-            // return 0;
-        }
 
-        // instruction is flushed
-        else {
-            // If instruction is mem op that doesnt execute or non mem op
-            // Save PC, change state
-            if ((is_memory_op(staticInst) && complete == -1)
-                || !is_memory_op(staticInst)) {
-                currentFsmState = Q_1;
+            // beginning of misspeculation window
+            if (commit == 0) {
+
                 savedPC = PC;
+            numFlushedWindows++;
+
+                // Completed memroy load
+                if (is_memory_op(staticInst) && complete != 0 && dest != 0) {
+                set_destination(dest);
+                        currentFsmState = Q_2;
+                }
+                // Non completed memory load or non memory operation
+                else {
+                        currentFsmState = Q_1;
+                }
             }
-            // If instruction is memory op that executes
-            // Save PC, change state
-            else if (is_memory_op(staticInst) && complete != -1){
-                currentFsmState = Q_2;
-                savedPC = PC;
-                // add destination register to register array
-                // first check that destination register is in array
-                if (registers.find(dest) != registers.end())
-                    registers[dest] = 1;
-                else
-                    return -1;
-            }
-            // Should never reach here...
-            else {
-                return -1;
-            }
-        }
+
     }
 
     else if (currentFsmState == Q_1) {
 
         // Retired instruction
         // goto Q_INIT
-        if (commit != -1) {
+        if (commit != 0) {
             currentFsmState = Q_INIT;
+            //file << std::endl << std::endl;
         }
-        // If flushed non memory inst or flushed mem inst that doesnt execute
-        // do nothing
-        // If flushed mem inst that completes
-        // Change state, add dst to register array
-        else if (is_memory_op(staticInst) && complete != -1) {
-            currentFsmState = Q_2;
-            if (registers.find(dest) != registers.end())
-                registers[dest] = 1;
-            else
-                return -1;
-        }
-        else if ((is_memory_op(staticInst) && complete == -1)
-            || !is_memory_op(staticInst)) {
-            // return 0;
-        }
-        // Should never reach here...
+        // flushed instruction
         else {
-            return -1;
+            // If completed memory inst:
+            // add destination register to register array
+            // goto Q_2
+            if (is_memory_op(staticInst) && complete != 0 && dest != 0) {
+                set_destination(dest);
+                currentFsmState = Q_2;
+            }
+            // Any other flushed instruction does not change state
         }
     }
 
     else if (currentFsmState == Q_2) {
 
-        if (commit != -1 && PC == savedPC) {
+        // Retired instruction
+        if (commit != 0) {
             currentFsmState = Q_INIT;
+            //file << std::endl << std::endl;
         }
-
-        // If we retire before seeing a flushed inst use a register
-        if (commit != -1) {
-                currentFsmState = Q_INIT;
-        }
-
-        // CHECK IF THESE INSTRUCTIONS ACTUALLY EXECUTE!
-        else if (registers.find(src1) != registers.end()
-                && registers[src1] == 1
-                && issue != -1) {
-
-                if (commit != -1 && PC != savedPC) {
-                        currentFsmState = Q_ACC;
-                }
-                else {
-                        currentFsmState = Q_3;
-                }
-        }
-        else if (registers.find(src2) != registers.end()
-                && registers[src2] == 1
-                && issue != -1) {
-
-                if (commit != -1 && PC != savedPC) {
-                        currentFsmState = Q_ACC;
-                }
-                else {
-                        currentFsmState = Q_3;
-                }
-        }
-
-        else if (is_memory_op(staticInst) && complete != -1) {
-                if (registers.find(dest) != registers.end())
-                    registers[dest] = 1;
-                else
-                    return -1;
-        }
-        else if (commit != -1 && PC != savedPC) {
-            // If mem inst and executes
-            if (is_memory_op(staticInst) && complete != -1) {
-                    currentFsmState = Q_4;
-                    if (registers.find(dest) != registers.end())
-                        registers[dest] = 0;
-                    else
-                        return -1;
-            }
-            // Non memory instruction or mem inst that doesnt execute
-            // change state
-            else {
-                currentFsmState = Q_4;
-            }
-        }
+        // Flushed instruction
         else {
-        //	std::cout << "Help! Inst: " << inst << std::endl;
+            // Check if inst executes and uses a tainted source
+            if (issue != 0 && src1 != 0 && in_destination_array(src1)) {
+                // Propogate taint to destiation register if inst completes
+                if (complete != 0)
+                    set_destination(src1);
+                currentFsmState = Q_3;
+            }
+            // Check both source registers, adding both to list
+            if (issue != 0 && src2 != 0 && in_destination_array(src2)) {
+                // Propogate taint to destiation register if inst completes
+                if (complete != 0)
+                    set_destination(src2);
+                currentFsmState = Q_3;
+            }
+            // If memory operation completes
+            // Add destination to dest register
+            // Remain in state, regardless of tainted sources
+            if (is_memory_op(staticInst) && complete != 0 && dest != 0) {
+                set_destination(dest);
+                currentFsmState = Q_2;
+            }
+            // Otherwise do nothing and remain in state Q_2
         }
     }
 
     else if (currentFsmState == Q_3) {
-        // Retired instruction and PC == savedPC
-        // goto initial state
-        if (commit != -1 && PC == savedPC) {
-            currentFsmState = Q_INIT;
+        // Retired instruction
+        if (commit != 0) {
+            if (PC == savedPC) {
+                currentFsmState = Q_INIT;
+                //file << std::endl << std::endl;
+            }
+            // PC != SavedPC
+            else {
+                currentFsmState = Q_ACC;
+            }
         }
-        // Retired inst and PC != savedPC
-        // goto accept state
-        else if (commit != -1 && PC != savedPC) {
-            currentFsmState = Q_ACC;
-        }
-        // Any flushed instruction
-        // do nothing
-        else if (commit == -1) {
-        }
-        // should never reach here...
+        // Flushed instruction
         else {
-            // return -1;
+            if (issue != 0 && src1 != 0 && in_destination_array(src1)) {
+                if (complete != 0)
+                    set_destination(src1);
+            }
+            if (issue != 0 && src2 != 0 && in_destination_array(src2)) {
+                if (complete != 0)
+                    set_destination(src2);
+            }
+            if (is_memory_op(staticInst) && complete != 0 && dest != 0) {
+                set_destination(dest);
+            }
         }
+
     }
 
-    else if (currentFsmState == Q_4) {
-        // if no more registers in reg array, goto initial state
-        if (register_array_empty()) {
-            currentFsmState = Q_INIT;
-        }
-        // If retired inst
-        else if (commit != -1) {
-            if (registers.find(src1) != registers.end()
-                && registers[src1] == 1
-                && issue != -1) {
-                currentFsmState = Q_3;
-            }
-            else if (registers.find(src2) != registers.end()
-                && registers[src2] == 1
-                && issue != -1) {
-                currentFsmState = Q_3;
-            }
-            // if memory op that executes
-            else if (is_memory_op(staticInst) && complete != -1) {
-                    if (registers.find(dest) != registers.end())
-                        registers[dest] = 0;
-                    else
-                        return -1;
-            }
-            // otherwise any retired instruction
-            // do not change state
-            else {
-                // return 0;
-            }
-        }
-        // flushed instruction
-        else {
-            // if memory inst that executes, goto Q_2
-            if (is_memory_op(staticInst) && complete != -1) {
-                clear_register_array();
-                savedPC = PC;
-                if (registers.find(dest) != registers.end())
-                    registers[dest] = 1;
-                currentFsmState = Q_2;
-            }
-            // otherwise goto Q_1
-            else if ((is_memory_op(staticInst) && complete == -1)
-                || !is_memory_op(staticInst)){
-                clear_register_array();
-                savedPC = PC;
-                currentFsmState = Q_1;
-            }
-            // should never reach here...
-            else {
-                // return -1;
-            }
-        }
-    }
 
     if (currentFsmState == Q_ACC) {
-
+        numVulnWindows++;
         // Check if misspeculated window is not already in list
         if (std::find(PCs.begin(), PCs.end(), savedPC) == PCs.end()) {
             PCs.push_back(savedPC);
-            numVulnWindows++;
             printf("Vulnerable speculative code found!\n");
             printf("Misspeculation window beginning at \
                         0x%08llx is vulnerable!\n",savedPC);
-            printf("Total number of malicious windows: %d\n", numVulnWindows);
+            printf("Total number of malicious windows: %d/%d (total)\n",
+                    numVulnWindows, numFlushedWindows);
+            printf("Unique PCs: %ld\n", PCs.size());
         }
         currentFsmState = Q_INIT;
+        //file << "!!!!!!!!!!!!!!!!!!!!VULN!!!!!!!!!!!!!!!!!!!!"
+        //     << std::endl << std::endl;
         return 0;
     }
 

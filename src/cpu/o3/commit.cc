@@ -1013,11 +1013,19 @@ Commit::commitInsts()
 
             // Record that the number of ROB entries has changed.
             changedROBNumEntries[tid] = true;
+
+            // commitTick will not be set
+            if (debug::SpecCheck)
+                head_inst->advanceFSM();
         } else {
             set(pc[tid], head_inst->pcState());
 
             // Try to commit the head instruction.
             bool commit_success = commitHead(head_inst, num_committed);
+
+            // commitTick set in commitHead
+            if (debug::SpecCheck)
+                head_inst->advanceFSM();
 
             if (commit_success) {
                 ++num_committed;
@@ -1067,6 +1075,7 @@ Commit::commitInsts()
                 cpu->traceFunctions(pc[tid]->instAddr());
 
                 head_inst->staticInst->advancePC(*pc[tid]);
+
 
                 // Keep track of the last sequence number commited
                 lastCommitedSeqNum[tid] = head_inst->seqNum;
@@ -1132,6 +1141,8 @@ Commit::commitInsts()
             }
         }
     }
+
+
 
     DPRINTF(CommitRate, "%i\n", num_committed);
     stats.numCommittedDist.sample(num_committed);

@@ -247,22 +247,6 @@ DynInst::~DynInst()
         }
     }
 #endif
-    if (debug::SpecCheck) {
-        Tick fetch = fetchTick;
-        if (fetch != -1) {
-                int status = consume_instruction
-                                (staticInst->disassemble(pcState().instAddr()),
-                                 pcState().instAddr(), commitTick, issueTick,
-                                 completeTick, staticInst);
-                if (status < 0) {
-                        std::cout << "FSM error, unrecognized instruction: " <<
-                                staticInst->disassemble(pcState().instAddr())
-                                << std::endl;
-                }
-        }
-    }
-// #endif
-
     delete [] memData;
     delete traceData;
     fault = NoFault;
@@ -279,6 +263,17 @@ DynInst::~DynInst()
 #endif
 };
 
+void
+DynInst::advanceFSM() {
+    bool issue = (issueTick == -1) ? 0 : 1;
+    bool complete = (completeTick == -1) ? 0 : 1;
+    bool commit = (commitTick == -1) ? 0 : 1;
+
+    unsigned long long PC = pcState().instAddr();
+    std::string inst = staticInst->disassemble(pcState().instAddr());
+
+    consume_instruction(inst, PC, commit, issue, complete, staticInst, this);
+}
 
 #ifdef DEBUG
 void

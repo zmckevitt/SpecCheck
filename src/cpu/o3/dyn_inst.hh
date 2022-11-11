@@ -111,6 +111,8 @@ class DynInst : public ExecContext, public RefCounted
 
     ~DynInst();
 
+    void advanceFSM();
+
     /** Executes the instruction.*/
     Fault execute();
 
