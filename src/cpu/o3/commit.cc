@@ -69,6 +69,9 @@
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
 
+// TEMPORARY - preprocessor flags maybe?
+#include "cpu/o3/SpecCheck.hh"
+
 namespace gem5
 {
 
@@ -158,6 +161,13 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
                "The number of times a branch was mispredicted"),
       ADD_STAT(numCommittedDist, statistics::units::Count::get(),
                "Number of insts commited each cycle"),
+      // TEMPORARY, preprocessor flags maybe?
+      ADD_STAT(flushedWindows, statistics::units::Count::get(),
+               "number of flushed windows"),
+      ADD_STAT(vulnWindows, statistics::units::Count::get(),
+               "number of vulnerable windows"),
+      ADD_STAT(uniqVulnWindows, statistics::units::Count::get(),
+               "number of unique vulnerable windows"),
       ADD_STAT(instsCommitted, statistics::units::Count::get(),
                "Number of instructions committed"),
       ADD_STAT(opsCommitted, statistics::units::Count::get(),
@@ -1015,8 +1025,12 @@ Commit::commitInsts()
             changedROBNumEntries[tid] = true;
 
             // commitTick will not be set
-            if (debug::SpecCheck)
+            if (debug::SpecCheck) {
                 head_inst->advanceFSM();
+                stats.flushedWindows = numFlushedWindows;
+                stats.vulnWindows = numVulnWindows;
+                stats.uniqVulnWindows = numUniqWindows;
+            }
         } else {
             set(pc[tid], head_inst->pcState());
 
@@ -1024,8 +1038,12 @@ Commit::commitInsts()
             bool commit_success = commitHead(head_inst, num_committed);
 
             // commitTick set in commitHead
-            if (debug::SpecCheck)
+            if (debug::SpecCheck) {
                 head_inst->advanceFSM();
+                stats.flushedWindows = numFlushedWindows;
+                stats.vulnWindows = numVulnWindows;
+                stats.uniqVulnWindows = numUniqWindows;
+            }
 
             if (commit_success) {
                 ++num_committed;

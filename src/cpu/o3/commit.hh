@@ -479,6 +479,11 @@ class Commit
         /** Distribution of the number of committed instructions each cycle. */
         statistics::Distribution numCommittedDist;
 
+        /** SpecCheck TEMPORARY */
+        statistics::Scalar flushedWindows;
+        statistics::Scalar vulnWindows;
+        statistics::Scalar uniqVulnWindows;
+
         /** Total number of instructions committed. */
         statistics::Vector instsCommitted;
         /** Total number of ops (including micro ops) committed. */

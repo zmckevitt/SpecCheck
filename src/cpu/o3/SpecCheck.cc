@@ -1,4 +1,5 @@
 #include "cpu/o3/SpecCheck.hh"
+#include "debug/SpecCheck.hh"
 
 namespace gem5 {
 
@@ -6,6 +7,7 @@ namespace o3 {
 
 int numFlushedWindows = 0;
 int numVulnWindows = 0;
+int numUniqWindows = 0;
 int currentFsmState = Q_INIT;
 unsigned long long savedPC = -1;
 std::vector<unsigned long long>PCs;
@@ -32,9 +34,6 @@ int is_memory_op(StaticInstPtr staticInst) {
     return staticInst->isLoad();
 }
 
-
-#include <fstream>
-
 int consume_instruction(std::string inst,
             unsigned long long PC,
             bool commit,
@@ -59,18 +58,6 @@ int consume_instruction(std::string inst,
         }
     }
 
-
-    //std::ofstream file;
-    //file.open("/ext/zamc2229/blank_windows.txt", std::ios_base::app);
-    //file << inst << " Dest: " << dest
-    //     << " src1: " << src1
-    //     << " src2: " << src2
-    //     << " issue: " << issue
-    //     << " complete: " << complete
-    //     << " commit: " << commit
-    //     << " STATE: " << currentFsmState
-    //     << std::endl;
-
     if (currentFsmState == Q_INIT) {
         clear_register_array();
         savedPC = -1;
@@ -79,11 +66,11 @@ int consume_instruction(std::string inst,
             if (commit == 0) {
 
                 savedPC = PC;
-            numFlushedWindows++;
+                numFlushedWindows++;
 
                 // Completed memroy load
                 if (is_memory_op(staticInst) && complete != 0 && dest != 0) {
-                set_destination(dest);
+                        set_destination(dest);
                         currentFsmState = Q_2;
                 }
                 // Non completed memory load or non memory operation
@@ -100,7 +87,6 @@ int consume_instruction(std::string inst,
         // goto Q_INIT
         if (commit != 0) {
             currentFsmState = Q_INIT;
-            //file << std::endl << std::endl;
         }
         // flushed instruction
         else {
@@ -120,7 +106,6 @@ int consume_instruction(std::string inst,
         // Retired instruction
         if (commit != 0) {
             currentFsmState = Q_INIT;
-            //file << std::endl << std::endl;
         }
         // Flushed instruction
         else {
@@ -154,7 +139,6 @@ int consume_instruction(std::string inst,
         if (commit != 0) {
             if (PC == savedPC) {
                 currentFsmState = Q_INIT;
-                //file << std::endl << std::endl;
             }
             // PC != SavedPC
             else {
@@ -184,17 +168,15 @@ int consume_instruction(std::string inst,
         // Check if misspeculated window is not already in list
         if (std::find(PCs.begin(), PCs.end(), savedPC) == PCs.end()) {
             PCs.push_back(savedPC);
-            printf("Vulnerable speculative code found!\n");
-            printf("Misspeculation window beginning at \
-                        0x%08llx is vulnerable!\n",savedPC);
-            printf("Total number of malicious windows: %d/%d (total)\n",
-                    numVulnWindows, numFlushedWindows);
-            printf("Unique PCs: %ld\n", PCs.size());
+            numUniqWindows = PCs.size();
+            // printf("Vulnerable speculative code found!\n");
+            // printf("Misspeculation window beginning at \
+            //             0x%08llx is vulnerable!\n",savedPC);
+            // printf("Total number of malicious windows: %d/%d (total)\n",
+            //         numVulnWindows, numFlushedWindows);
+            // printf("Unique PCs: %ld\n", PCs.size());
         }
         currentFsmState = Q_INIT;
-        //file << "!!!!!!!!!!!!!!!!!!!!VULN!!!!!!!!!!!!!!!!!!!!"
-        //     << std::endl << std::endl;
-        return 0;
     }
 
     return 0;

@@ -7,16 +7,18 @@
 
 #include "cpu/o3/dyn_inst.hh"
 
-// TODO: minimize this file to expose ONLY
-// functions/vars that will be used externally
-
 namespace gem5 {
 
 namespace o3 {
 
 extern int numFlushedWindows;
 extern int numVulnWindows;
+extern int numUniqWindows;
 extern int currentFsmState;
+
+// I believe we can delete these...
+// Although we could add savedPCs as a Stats::vector in commit
+// Make PCs private!
 extern unsigned long long savedPC;
 extern std::vector<unsigned long long>PCs;
 
