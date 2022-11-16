@@ -17,6 +17,7 @@ cd $SPEC/$BENCHMARK/run/run_base_refspeed_$CFG_LABEL-m64.0000 # go to benchmark 
 # gem5 simulation commands
 $GEM5_PATH/build/X86/gem5.opt \
 --outdir=$GEM5_PATH/evaluation/run/$BENCHMARK.$CFG_LABEL \
+--debug-flags=SpecCheck \
 $EXPERIMENT \
 --mem-size=8GB \
 --cpu-type=DerivO3CPU \
