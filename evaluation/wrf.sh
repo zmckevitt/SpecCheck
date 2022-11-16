@@ -4,8 +4,8 @@ SPEC="/home/zamc2229/cpu2017/benchspec/CPU" # path to SPEC benchmarks
 GEM5_PATH="/home/zamc2229/gem5" # path to gem5 project
 EXPERIMENT="${GEM5_PATH}/configs/example/se.py" # gem5 experiment location
 CFG_LABEL="ML_X86" # label defined in the SPEC .cfg of choice
-BENCHMARK="627.cam4_s" # full benchmark name
-BINARY="cam4_s_base" # binary file generated from SPEC
+BENCHMARK="621.wrf_s" # full benchmark name
+BINARY="wrf_s_base" # binary file generated from SPEC
 INPUT=" " # input to binary
 
 echo "running ${CFG_LABEL}.${BENCHMARK}.baseline..."

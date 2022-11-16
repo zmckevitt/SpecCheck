@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SPEC="/home/anis8367/cpu2017/benchspec/CPU" # path to SPEC benchmarks
-GEM5_PATH="/home/anis8367/gem5" # path to gem5 project
+SPEC="/home/zamc2229/cpu2017/benchspec/CPU" # path to SPEC benchmarks
+GEM5_PATH="/home/zamc2229/gem5" # path to gem5 project
 EXPERIMENT="${GEM5_PATH}/configs/example/se.py" # gem5 experiment location
 CFG_LABEL="ML_X86" # label defined in the SPEC .cfg of choice
 BENCHMARK="620.omnetpp_s" # full benchmark name
