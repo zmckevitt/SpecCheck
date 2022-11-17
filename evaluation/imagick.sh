@@ -15,9 +15,8 @@ CWD=$PWD #save current working directory location
 cd $SPEC/$BENCHMARK/run/run_base_refspeed_$CFG_LABEL-m64.0000 # go to benchmark run location
 
 # gem5 simulation commands
-$GEM5_PATH/build/X86_MESI_Two_Level/gem5.opt \
+$GEM5_PATH/build/X86/gem5.opt \
 --outdir=$GEM5_PATH/evaluation/run/$BENCHMARK.$CFG_LABEL \
---debug-flags=SpecCheck \
 $EXPERIMENT \
 --mem-type SimpleMemory \
 --mem-size=8GB \
