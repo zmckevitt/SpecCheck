@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021 ARM Limited
+ * Copyright (c) 2020 ARM Limited
  * All rights reserved.
  *
  * The license below extends only to copyright in the software and shall
@@ -61,8 +61,7 @@ namespace ruby
 class Consumer
 {
   public:
-    Consumer(ClockedObject *em,
-             Event::Priority ev_prio = Event::Default_Pri);
+    Consumer(ClockedObject *_em);
 
     virtual
     ~Consumer()

@@ -130,10 +130,8 @@ let {{
             wbDecl = None
             if self.writeback:
                 wbDecl = '''MicroAddiUop(machInst,
-                              int_reg::regInMode((OperatingMode)regMode,
-                                  int_reg::Sp),
-                              int_reg::regInMode((OperatingMode)regMode,
-                                  int_reg::Sp),
+                              intRegInMode((OperatingMode)regMode, INTREG_SP),
+                              intRegInMode((OperatingMode)regMode, INTREG_SP),
                               %d);''' % wbDiff
 
             (newHeader,

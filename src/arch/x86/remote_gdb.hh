@@ -58,7 +58,7 @@ class RemoteGDB : public BaseRemoteGDB
 {
   protected:
     bool acc(Addr addr, size_t len);
-    bool checkBpKind(size_t kind) { return kind == 1; }
+    bool checkBpLen(size_t len) { return len == 1; }
     class X86GdbRegCache : public BaseGdbRegCache
     {
       using BaseGdbRegCache::BaseGdbRegCache;

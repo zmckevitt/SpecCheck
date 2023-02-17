@@ -59,8 +59,7 @@ class HWScheduler
                           uint64_t basePointer,
                           uint64_t queue_id,
                           uint32_t size, int doorbellSize,
-                          GfxVersion gfxVersion,
-                          Addr offset = 0, uint64_t rd_idx = 0);
+                          GfxVersion gfxVersion);
     void unregisterQueue(uint64_t queue_id, int doorbellSize);
     void wakeup();
     void schedWakeup();
@@ -91,10 +90,8 @@ class HWScheduler
     // Active list keeps track of all queues created
     std::map<uint32_t, QCntxt> activeList;
     //TODO: Modify this to support multi-process in the future.
-    // doorbell map, maps doorbell offsets to queue ID
+    // doorbell map, maps doorbells to active list entry
     std::map<Addr, uint32_t> dbMap;
-    // Reverse of doorbell map, maps queue ID to doorbell offset
-    std::map<uint64_t, Addr> qidMap;
     // regdListMap keeps track of the mapping of queues to
     // registered list. regdListMap is indexed with active
     // list index (which is same as queue ID)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2017, 2021-2022 Arm Limited
+ * Copyright (c) 2015-2017 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -42,11 +42,7 @@
 #include "cpu/kvm/device.hh"
 #include "cpu/kvm/vm.hh"
 #include "dev/arm/gic_v2.hh"
-#include "dev/arm/gic_v3.hh"
 #include "dev/platform.hh"
-
-#include "params/MuxingKvmGicV2.hh"
-#include "params/MuxingKvmGicV3.hh"
 
 namespace gem5
 {
@@ -58,7 +54,7 @@ namespace gem5
  * model. It exposes an API that is similar to that of
  * software-emulated GIC models in gem5.
  */
-class KvmKernelGic
+class KvmKernelGicV2 : public BaseGicRegisters
 {
   public:
     /**
@@ -72,15 +68,14 @@ class KvmKernelGic
      * @param dist_addr GIC distributor base address
      * @param it_lines Number of interrupt lines to support
      */
-    KvmKernelGic(KvmVM &vm, uint32_t dev, unsigned it_lines);
-    virtual ~KvmKernelGic();
+    KvmKernelGicV2(KvmVM &vm, Addr cpu_addr, Addr dist_addr,
+                   unsigned it_lines);
+    virtual ~KvmKernelGicV2();
 
-    KvmKernelGic(const KvmKernelGic &other) = delete;
-    KvmKernelGic(const KvmKernelGic &&other) = delete;
-    KvmKernelGic &operator=(const KvmKernelGic &&rhs) = delete;
-    KvmKernelGic &operator=(const KvmKernelGic &rhs) = delete;
-
-    virtual void init() {}
+    KvmKernelGicV2(const KvmKernelGicV2 &other) = delete;
+    KvmKernelGicV2(const KvmKernelGicV2 &&other) = delete;
+    KvmKernelGicV2 &operator=(const KvmKernelGicV2 &&rhs) = delete;
+    KvmKernelGicV2 &operator=(const KvmKernelGicV2 &rhs) = delete;
 
   public:
     /**
@@ -117,6 +112,19 @@ class KvmKernelGic
      */
     void clearPPI(unsigned vcpu, unsigned ppi);
 
+    /** Address range for the CPU interfaces */
+    const AddrRange cpuRange;
+    /** Address range for the distributor interface */
+    const AddrRange distRange;
+
+    /** BaseGicRegisters interface */
+    uint32_t readDistributor(ContextID ctx, Addr daddr) override;
+    uint32_t readCpu(ContextID ctx, Addr daddr) override;
+
+    void writeDistributor(ContextID ctx, Addr daddr,
+                          uint32_t data) override;
+    void writeCpu(ContextID ctx, Addr daddr, uint32_t data) override;
+
     /* @} */
 
   protected:
@@ -130,37 +138,6 @@ class KvmKernelGic
      */
     void setIntState(unsigned type, unsigned vcpu, unsigned irq, bool high);
 
-    /** KVM VM in the parent system */
-    KvmVM &vm;
-
-    /** Kernel interface to the GIC */
-    KvmDevice kdev;
-};
-
-class KvmKernelGicV2 : public KvmKernelGic, public GicV2Registers
-{
-  public:
-    /**
-     * Instantiate a KVM in-kernel GICv2 model.
-     *
-     * This constructor instantiates an in-kernel GICv2 model and wires
-     * it up to the virtual memory system.
-     *
-     * @param vm KVM VM representing this system
-     * @param params MuxingKvmGicV2 params
-     */
-    KvmKernelGicV2(KvmVM &vm,
-                   const MuxingKvmGicV2Params &params);
-
-  public: // GicV2Registers
-    uint32_t readDistributor(ContextID ctx, Addr daddr) override;
-    uint32_t readCpu(ContextID ctx, Addr daddr) override;
-
-    void writeDistributor(ContextID ctx, Addr daddr,
-                          uint32_t data) override;
-    void writeCpu(ContextID ctx, Addr daddr, uint32_t data) override;
-
-  protected:
     /**
      * Get value of GIC register "from" a cpu
      *
@@ -181,96 +158,21 @@ class KvmKernelGicV2 : public KvmKernelGic, public GicV2Registers
     void setGicReg(unsigned group, unsigned vcpu, unsigned offset,
                    unsigned value);
 
-  private:
-    /** Address range for the CPU interfaces */
-    const AddrRange cpuRange;
-    /** Address range for the distributor */
-    const AddrRange distRange;
+    /** KVM VM in the parent system */
+    KvmVM &vm;
+
+    /** Kernel interface to the GIC */
+    KvmDevice kdev;
 };
 
-class KvmKernelGicV3 : public KvmKernelGic, public Gicv3Registers
+
+struct MuxingKvmGicParams;
+
+class MuxingKvmGic : public GicV2
 {
-  public:
-    /**
-     * Instantiate a KVM in-kernel GICv3 model.
-     *
-     * This constructor instantiates an in-kernel GICv3 model and wires
-     * it up to the virtual memory system.
-     *
-     * @param vm KVM VM representing this system
-     * @param params MuxingKvmGicV3 parameters
-     */
-    KvmKernelGicV3(KvmVM &vm,
-                   const MuxingKvmGicV3Params &params);
-
-    void init() override;
-
-  public: // Gicv3Registers
-    uint32_t readDistributor(Addr daddr) override;
-    uint32_t readRedistributor(const ArmISA::Affinity &aff,
-                               Addr daddr) override;
-    RegVal readCpu(const ArmISA::Affinity &aff,
-                   ArmISA::MiscRegIndex misc_reg) override;
-
-    void writeDistributor(Addr daddr, uint32_t data) override;
-    void writeRedistributor(const ArmISA::Affinity &aff,
-                            Addr daddr, uint32_t data) override;
-    void writeCpu(const ArmISA::Affinity &aff,
-                  ArmISA::MiscRegIndex misc_reg, RegVal data) override;
-
-  protected:
-    /**
-     * Get value of GIC register "from" a cpu
-     *
-     * @param group Distributor or CPU (KVM_DEV_ARM_VGIC_GRP_{DIST,CPU}_REGS)
-     * @param mpidr CPU affinity numbers
-     * @param offset register offset
-     */
-    template <typename Ret>
-    Ret getGicReg(unsigned group, unsigned mpidr, unsigned offset);
-
-    /**
-     * Set value of GIC register "from" a cpu
-     *
-     * @param group Distributor or CPU (KVM_DEV_ARM_VGIC_GRP_{DIST,CPU}_REGS)
-     * @param mpidr CPU affinity numbers
-     * @param offset register offset
-     * @param value value to set register to
-     */
-    template <typename Arg>
-    void setGicReg(unsigned group, unsigned mpidr, unsigned offset,
-                   Arg value);
-
-  private:
-    /** Address range for the redistributor */
-    const AddrRange redistRange;
-    /** Address range for the distributor */
-    const AddrRange distRange;
-};
-
-struct GicV2Types
-{
-    using SimGic = GicV2;
-    using KvmGic = KvmKernelGicV2;
-    using Params = MuxingKvmGicV2Params;
-};
-
-struct GicV3Types
-{
-    using SimGic = Gicv3;
-    using KvmGic = KvmKernelGicV3;
-    using Params = MuxingKvmGicV3Params;
-};
-
-template <class Types>
-class MuxingKvmGic : public Types::SimGic
-{
-    using SimGic = typename Types::SimGic;
-    using KvmGic = typename Types::KvmGic;
-    using Params = typename Types::Params;
-
   public: // SimObject / Serializable / Drainable
-    MuxingKvmGic(const Params &p);
+    MuxingKvmGic(const MuxingKvmGicParams &p);
+    ~MuxingKvmGic();
 
     void startup() override;
     DrainState drain() override;
@@ -287,22 +189,38 @@ class MuxingKvmGic : public Types::SimGic
     void sendPPInt(uint32_t num, uint32_t cpu) override;
     void clearPPInt(uint32_t num, uint32_t cpu) override;
 
-  protected: // BaseGic
-    bool blockIntUpdate() const override;
+  protected: // GicV2
+    void updateIntState(int hint) override;
 
   protected:
     /** System this interrupt controller belongs to */
     System &system;
 
     /** Kernel GIC device */
-    KvmKernelGic *kernelGic;
+    KvmKernelGicV2 *kernelGic;
 
   private:
     bool usingKvm;
 
     /** Multiplexing implementation */
-    void fromGicToKvm();
-    void fromKvmToGic();
+    void fromGicV2ToKvm();
+    void fromKvmToGicV2();
+
+    void copyGicState(BaseGicRegisters* from, BaseGicRegisters* to);
+
+    void copyDistRegister(BaseGicRegisters* from, BaseGicRegisters* to,
+                          ContextID ctx, Addr daddr);
+    void copyCpuRegister(BaseGicRegisters* from, BaseGicRegisters* to,
+                         ContextID ctx, Addr daddr);
+
+    void copyBankedDistRange(BaseGicRegisters* from, BaseGicRegisters* to,
+                             Addr daddr, size_t size);
+    void clearBankedDistRange(BaseGicRegisters* to,
+                              Addr daddr, size_t size);
+    void copyDistRange(BaseGicRegisters* from, BaseGicRegisters* to,
+                       Addr daddr, size_t size);
+    void clearDistRange(BaseGicRegisters* to,
+                        Addr daddr, size_t size);
 };
 
 } // namespace gem5

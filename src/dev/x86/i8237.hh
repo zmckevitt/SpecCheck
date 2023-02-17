@@ -48,13 +48,7 @@ class I8237 : public BasicPioDevice
 
   protected:
     Tick latency;
-    uint8_t maskVal;
-    //XXX These should be serialized.
-    uint8_t requestVal;
-    uint8_t commandVal;
-    uint8_t statusVal;
-    uint8_t tempVal;
-    bool highByte;
+    uint8_t maskReg = 0;
 
     RegisterBankLE regs;
 
@@ -73,9 +67,6 @@ class I8237 : public BasicPioDevice
         };
 
         int number;
-
-        //XXX These should be serialized.
-        uint8_t mode = 0x0;
 
         ChannelAddrReg addrReg;
         ChannelRemainingReg remainingReg;
@@ -101,9 +92,7 @@ class I8237 : public BasicPioDevice
     WriteOnlyReg clearMaskReg;
     WriteOnlyReg writeMaskReg;
 
-    void reset();
     void setMaskBit(Register &reg, const uint8_t &command);
-    void setRequestBit(Register &reg, const uint8_t &command);
 
   public:
     using Params = I8237Params;

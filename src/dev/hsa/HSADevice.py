@@ -31,7 +31,6 @@ from m5.SimObject import SimObject
 from m5.params import *
 from m5.proxy import *
 from m5.objects.Device import DmaVirtDevice
-from m5.objects.VegaGPUTLB import VegaPagetableWalker
 
 class HSAPacketProcessor(DmaVirtDevice):
     type = 'HSAPacketProcessor'
@@ -49,5 +48,3 @@ class HSAPacketProcessor(DmaVirtDevice):
     # See: https://github.com/RadeonOpenCompute/atmi/tree/master/examples/
     #      runtime/kps
     pktProcessDelay = Param.Tick(4400000, "Packet processing delay")
-    walker = Param.VegaPagetableWalker(VegaPagetableWalker(),
-            "Page table walker")

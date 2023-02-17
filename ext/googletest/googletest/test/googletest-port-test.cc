@@ -90,10 +90,10 @@ TEST(IsXDigitTest, ReturnsFalseForWideNonAscii) {
 
 class Base {
  public:
+  // Copy constructor and assignment operator do exactly what we need, so we
+  // use them.
   Base() : member_(0) {}
   explicit Base(int n) : member_(n) {}
-  Base(const Base&) = default;
-  Base& operator=(const Base&) = default;
   virtual ~Base() {}
   int member() { return member_; }
 
@@ -201,13 +201,6 @@ TEST(ImplicitCastTest, CanUseImplicitConstructor) {
   EXPECT_TRUE(converted);
 }
 
-// The following code intentionally tests a suboptimal syntax.
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdangling-else"
-#pragma GCC diagnostic ignored "-Wempty-body"
-#pragma GCC diagnostic ignored "-Wpragmas"
-#endif
 TEST(GtestCheckSyntaxTest, BehavesLikeASingleStatement) {
   if (AlwaysFalse())
     GTEST_CHECK_(false) << "This should never be executed; "
@@ -223,9 +216,6 @@ TEST(GtestCheckSyntaxTest, BehavesLikeASingleStatement) {
   else
     GTEST_CHECK_(true) << "";
 }
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 TEST(GtestCheckSyntaxTest, WorksWithSwitch) {
   switch (0) {
@@ -280,7 +270,7 @@ TEST(FormatCompilerIndependentFileLocationTest, FormatsUknownFileAndLine) {
 
 #if GTEST_OS_LINUX || GTEST_OS_MAC || GTEST_OS_QNX || GTEST_OS_FUCHSIA || \
     GTEST_OS_DRAGONFLY || GTEST_OS_FREEBSD || GTEST_OS_GNU_KFREEBSD || \
-    GTEST_OS_NETBSD || GTEST_OS_OPENBSD || GTEST_OS_GNU_HURD
+    GTEST_OS_NETBSD || GTEST_OS_OPENBSD
 void* ThreadFunc(void* data) {
   internal::Mutex* mutex = static_cast<internal::Mutex*>(data);
   mutex->Lock();
@@ -289,61 +279,36 @@ void* ThreadFunc(void* data) {
 }
 
 TEST(GetThreadCountTest, ReturnsCorrectValue) {
-  size_t starting_count;
-  size_t thread_count_after_create;
-  size_t thread_count_after_join;
+  const size_t starting_count = GetThreadCount();
+  pthread_t       thread_id;
 
-  // We can't guarantee that no other thread was created or destroyed between
-  // any two calls to GetThreadCount(). We make multiple attempts, hoping that
-  // background noise is not constant and we would see the "right" values at
-  // some point.
-  for (int attempt = 0; attempt < 20; ++attempt) {
-    starting_count = GetThreadCount();
-    pthread_t thread_id;
+  internal::Mutex mutex;
+  {
+    internal::MutexLock lock(&mutex);
+    pthread_attr_t  attr;
+    ASSERT_EQ(0, pthread_attr_init(&attr));
+    ASSERT_EQ(0, pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE));
 
-    internal::Mutex mutex;
-    {
-      internal::MutexLock lock(&mutex);
-      pthread_attr_t attr;
-      ASSERT_EQ(0, pthread_attr_init(&attr));
-      ASSERT_EQ(0, pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE));
-
-      const int status = pthread_create(&thread_id, &attr, &ThreadFunc, &mutex);
-      ASSERT_EQ(0, pthread_attr_destroy(&attr));
-      ASSERT_EQ(0, status);
-    }
-
-    thread_count_after_create = GetThreadCount();
-
-    void* dummy;
-    ASSERT_EQ(0, pthread_join(thread_id, &dummy));
-
-    // Join before we decide whether we need to retry the test. Retry if an
-    // arbitrary other thread was created or destroyed in the meantime.
-    if (thread_count_after_create != starting_count + 1) continue;
-
-    // The OS may not immediately report the updated thread count after
-    // joining a thread, causing flakiness in this test. To counter that, we
-    // wait for up to .5 seconds for the OS to report the correct value.
-    bool thread_count_matches = false;
-    for (int i = 0; i < 5; ++i) {
-      thread_count_after_join = GetThreadCount();
-      if (thread_count_after_join == starting_count) {
-        thread_count_matches = true;
-        break;
-      }
-
-      SleepMilliseconds(100);
-    }
-
-    // Retry if an arbitrary other thread was created or destroyed.
-    if (!thread_count_matches) continue;
-
-    break;
+    const int status = pthread_create(&thread_id, &attr, &ThreadFunc, &mutex);
+    ASSERT_EQ(0, pthread_attr_destroy(&attr));
+    ASSERT_EQ(0, status);
+    EXPECT_EQ(starting_count + 1, GetThreadCount());
   }
 
-  EXPECT_EQ(thread_count_after_create, starting_count + 1);
-  EXPECT_EQ(thread_count_after_join, starting_count);
+  void* dummy;
+  ASSERT_EQ(0, pthread_join(thread_id, &dummy));
+
+  // The OS may not immediately report the updated thread count after
+  // joining a thread, causing flakiness in this test. To counter that, we
+  // wait for up to .5 seconds for the OS to report the correct value.
+  for (int i = 0; i < 5; ++i) {
+    if (GetThreadCount() == starting_count)
+      break;
+
+    SleepMilliseconds(100);
+  }
+
+  EXPECT_EQ(starting_count, GetThreadCount());
 }
 #else
 TEST(GetThreadCountTest, ReturnsZeroWhenUnableToCountThreads) {
@@ -397,6 +362,8 @@ TEST(RegexEngineSelectionTest, SelectsCorrectRegexEngine) {
 }
 
 #if GTEST_USES_POSIX_RE
+
+# if GTEST_HAS_TYPED_TEST
 
 template <typename Str>
 class RETest : public ::testing::Test {};
@@ -452,6 +419,8 @@ TYPED_TEST(RETest, PartialMatchWorks) {
   EXPECT_TRUE(RE::PartialMatch(TypeParam("azy"), re));
   EXPECT_FALSE(RE::PartialMatch(TypeParam("zza"), re));
 }
+
+# endif  // GTEST_HAS_TYPED_TEST
 
 #elif GTEST_USES_SIMPLE_RE
 
@@ -1211,6 +1180,8 @@ class DestructorTracker {
     return DestructorCall::List().size() - 1;
   }
   const size_t index_;
+
+  GTEST_DISALLOW_ASSIGN_(DestructorTracker);
 };
 
 typedef ThreadLocal<DestructorTracker>* ThreadParam;

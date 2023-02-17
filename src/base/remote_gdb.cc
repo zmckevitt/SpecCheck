@@ -784,28 +784,28 @@ BaseRemoteGDB::setSingleStep()
 }
 
 void
-BaseRemoteGDB::insertSoftBreak(Addr addr, size_t kind)
+BaseRemoteGDB::insertSoftBreak(Addr addr, size_t len)
 {
-    if (!checkBpKind(kind))
-        throw BadClient("Invalid breakpoint kind.\n");
+    if (!checkBpLen(len))
+        throw BadClient("Invalid breakpoint length\n");
 
-    return insertHardBreak(addr, kind);
+    return insertHardBreak(addr, len);
 }
 
 void
-BaseRemoteGDB::removeSoftBreak(Addr addr, size_t kind)
+BaseRemoteGDB::removeSoftBreak(Addr addr, size_t len)
 {
-    if (!checkBpKind(kind))
-        throw BadClient("Invalid breakpoint kind.\n");
+    if (!checkBpLen(len))
+        throw BadClient("Invalid breakpoint length.\n");
 
-    return removeHardBreak(addr, kind);
+    return removeHardBreak(addr, len);
 }
 
 void
-BaseRemoteGDB::insertHardBreak(Addr addr, size_t kind)
+BaseRemoteGDB::insertHardBreak(Addr addr, size_t len)
 {
-    if (!checkBpKind(kind))
-        throw BadClient("Invalid breakpoint kind.\n");
+    if (!checkBpLen(len))
+        throw BadClient("Invalid breakpoint length\n");
 
     DPRINTF(GDBMisc, "Inserting hardware breakpoint at %#x\n", addr);
 
@@ -817,10 +817,10 @@ BaseRemoteGDB::insertHardBreak(Addr addr, size_t kind)
 }
 
 void
-BaseRemoteGDB::removeHardBreak(Addr addr, size_t kind)
+BaseRemoteGDB::removeHardBreak(Addr addr, size_t len)
 {
-    if (!checkBpKind(kind))
-        throw BadClient("Invalid breakpoint kind.\n");
+    if (!checkBpLen(len))
+        throw BadClient("Invalid breakpoint length\n");
 
     DPRINTF(GDBMisc, "Removing hardware breakpoint at %#x\n", addr);
 
@@ -917,7 +917,7 @@ std::map<char, BaseRemoteGDB::GdbCommand> BaseRemoteGDB::commandMap = {
 };
 
 bool
-BaseRemoteGDB::checkBpKind(size_t kind)
+BaseRemoteGDB::checkBpLen(size_t len)
 {
     return true;
 }
@@ -1302,17 +1302,17 @@ BaseRemoteGDB::cmdClrHwBkpt(GdbCommand::Context &ctx)
     Addr addr = hex2i(&p);
     if (*p++ != ',')
         throw CmdError("E0D");
-    size_t kind = hex2i(&p);
+    size_t len = hex2i(&p);
 
-    DPRINTF(GDBMisc, "clear %s, addr=%#x, kind=%d\n",
-            breakType(sub_cmd), addr, kind);
+    DPRINTF(GDBMisc, "clear %s, addr=%#x, len=%d\n",
+            breakType(sub_cmd), addr, len);
 
     switch (sub_cmd) {
       case GdbSoftBp:
-        removeSoftBreak(addr, kind);
+        removeSoftBreak(addr, len);
         break;
       case GdbHardBp:
-        removeHardBreak(addr, kind);
+        removeHardBreak(addr, len);
         break;
       case GdbWriteWp:
       case GdbReadWp:
@@ -1335,17 +1335,17 @@ BaseRemoteGDB::cmdSetHwBkpt(GdbCommand::Context &ctx)
     Addr addr = hex2i(&p);
     if (*p++ != ',')
         throw CmdError("E0D");
-    size_t kind = hex2i(&p);
+    size_t len = hex2i(&p);
 
-    DPRINTF(GDBMisc, "set %s, addr=%#x, kind=%d\n",
-            breakType(sub_cmd), addr, kind);
+    DPRINTF(GDBMisc, "set %s, addr=%#x, len=%d\n",
+            breakType(sub_cmd), addr, len);
 
     switch (sub_cmd) {
       case GdbSoftBp:
-        insertSoftBreak(addr, kind);
+        insertSoftBreak(addr, len);
         break;
       case GdbHardBp:
-        insertHardBreak(addr, kind);
+        insertHardBreak(addr, len);
         break;
       case GdbWriteWp:
       case GdbReadWp:

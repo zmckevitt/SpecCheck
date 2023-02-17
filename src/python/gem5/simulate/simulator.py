@@ -32,7 +32,6 @@ from m5.objects import Root
 from m5.util import warn
 
 import os
-from pathlib import Path
 from typing import Optional, List, Tuple, Dict, Generator, Union
 
 from .exit_event_generators import (
@@ -72,19 +71,17 @@ class Simulator:
     def __init__(
         self,
         board: AbstractBoard,
-        full_system: Optional[bool] = None,
+        full_system: bool = True,
         on_exit_event: Optional[
             Dict[Union[str, ExitEvent], Generator[Optional[bool], None, None]]
         ] = None,
         expected_execution_order: Optional[List[ExitEvent]] = None,
-        checkpoint_path: Optional[Path] = None,
     ) -> None:
         """
         :param board: The board to be simulated.
-        :param full_system: Whether to run as a full-system simulation or not.
-        This is optional and used to override default behavior. If not set,
-        whether or not to run in FS mode will be determined via the board's
-        `is_fullsystem()` function.
+        :param full_system: Whether to run in full-system simulation or not. If
+        False, the simulation will run in Syscall-Execution mode. True by
+        default.
         :param on_exit_event: An optional map to specify the generator to
         execute on each exit event. The generator may yield a boolean which,
         if True, will have the Simulator exit the run loop.
@@ -93,9 +90,6 @@ class Simulator:
         encountered (e.g., 'Workbegin', 'Workend', then 'Exit'), an Exception
         is thrown. If this parameter is not specified, any ordering of exit
         events is valid.
-        :param checkpoint_path: An optional parameter specifying the directory
-        of the checkpoint to instantiate from. When the path is None, no
-        checkpoint will be loaded. By default, the path is None.
 
         `on_exit_event` usage notes
         ---------------------------
@@ -182,8 +176,6 @@ class Simulator:
 
         self._last_exit_event = None
         self._exit_event_count = 0
-
-        self._checkpoint_path = checkpoint_path
 
     def get_stats(self) -> Dict:
         """
@@ -272,12 +264,7 @@ class Simulator:
         """
 
         if not self._instantiated:
-            root = Root(
-                full_system=self._full_system
-                if self._full_system is not None
-                else self._board.is_fullsystem(),
-                board=self._board,
-            )
+            root = Root(full_system=self._full_system, board=self._board)
 
             # We take a copy of the Root in case it's required elsewhere
             # (for example, in `get_stats()`).
@@ -290,10 +277,7 @@ class Simulator:
                 m5.ticks.fixGlobalFrequency()
                 root.sim_quantum = m5.ticks.fromSeconds(0.001)
 
-            # m5.instantiate() takes a parameter specifying the path to the
-            # checkpoint directory. If the parameter is None, no checkpoint
-            # will be restored.
-            m5.instantiate(self._checkpoint_path)
+            m5.instantiate()
             self._instantiated = True
 
     def run(self, max_ticks: int = m5.MaxTick) -> None:
@@ -363,13 +347,3 @@ class Simulator:
             # run loop.
             if exit_on_completion:
                 return
-
-    def save_checkpoint(self, checkpoint_dir: Path) -> None:
-        """
-        This function will save the checkpoint to the specified directory.
-
-        :param checkpoint_dir: The path to the directory where the checkpoint
-        will be saved.
-        """
-        m5.checkpoint(str(checkpoint_dir))
-

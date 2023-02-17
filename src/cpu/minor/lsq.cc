@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014,2017-2018,2020-2021 Arm Limited
+ * Copyright (c) 2013-2014,2017-2018,2020 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -58,9 +58,10 @@ namespace minor
 {
 
 LSQ::LSQRequest::LSQRequest(LSQ &port_, MinorDynInstPtr inst_, bool isLoad_,
-        PacketDataPtr data_, uint64_t *res_) :
+        RegIndex zero_reg, PacketDataPtr data_, uint64_t *res_) :
     SenderState(),
     port(port_),
+    zeroReg(zero_reg),
     inst(inst_),
     isLoad(isLoad_),
     data(data_),
@@ -80,7 +81,7 @@ LSQ::LSQRequest::tryToSuppressFault()
 {
     SimpleThread &thread = *port.cpu.threads[inst->id.threadId];
     std::unique_ptr<PCStateBase> old_pc(thread.pcState().clone());
-    ExecContext context(port.cpu, thread, port.execute, inst);
+    ExecContext context(port.cpu, thread, port.execute, inst, zeroReg);
     [[maybe_unused]] Fault fault = inst->translationFault;
 
     // Give the instruction a chance to suppress a translation fault
@@ -103,7 +104,7 @@ LSQ::LSQRequest::completeDisabledMemAccess()
     SimpleThread &thread = *port.cpu.threads[inst->id.threadId];
     std::unique_ptr<PCStateBase> old_pc(thread.pcState().clone());
 
-    ExecContext context(port.cpu, thread, port.execute, inst);
+    ExecContext context(port.cpu, thread, port.execute, inst, zeroReg);
 
     context.setMemAccPredicate(false);
     inst->staticInst->completeAcc(nullptr, &context, inst->traceData);
@@ -392,7 +393,7 @@ LSQ::SplitDataRequest::finish(const Fault &fault_, const RequestPtr &request_,
 
 LSQ::SplitDataRequest::SplitDataRequest(LSQ &port_, MinorDynInstPtr inst_,
     bool isLoad_, PacketDataPtr data_, uint64_t *res_) :
-    LSQRequest(port_, inst_, isLoad_, data_, res_),
+    LSQRequest(port_, inst_, isLoad_, port_.zeroReg, data_, res_),
     translationEvent([this]{ sendNextFragmentToTranslation(); },
                      "translationEvent"),
     numFragments(0),
@@ -1131,7 +1132,7 @@ LSQ::tryToSendToTransfers(LSQRequestPtr request)
         SimpleThread &thread = *cpu.threads[request->inst->id.threadId];
 
         std::unique_ptr<PCStateBase> old_pc(thread.pcState().clone());
-        ExecContext context(cpu, thread, execute, request->inst);
+        ExecContext context(cpu, thread, execute, request->inst, zeroReg);
 
         /* Handle LLSC requests and tests */
         if (is_load) {
@@ -1405,10 +1406,12 @@ LSQ::LSQ(std::string name_, std::string dcache_port_name_,
     unsigned int in_memory_system_limit, unsigned int line_width,
     unsigned int requests_queue_size, unsigned int transfers_queue_size,
     unsigned int store_buffer_size,
-    unsigned int store_buffer_cycle_store_limit) :
+    unsigned int store_buffer_cycle_store_limit,
+    RegIndex zero_reg) :
     Named(name_),
     cpu(cpu_),
     execute(execute_),
+    zeroReg(zero_reg),
     dcachePort(dcache_port_name_, *this, cpu_),
     lastMemBarrier(cpu.numThreads, 0),
     state(MemoryRunning),
@@ -1647,14 +1650,6 @@ LSQ::pushRequest(MinorDynInstPtr inst, bool isLoad, uint8_t *data,
         /* I've no idea why we need the PC, but give it */
         inst->pc->instAddr(), std::move(amo_op));
     request->request->setByteEnable(byte_enable);
-
-    /* If the request is marked as NO_ACCESS, setup a local access
-     * doing nothing */
-    if (flags.isSet(Request::NO_ACCESS)) {
-        assert(!request->request->isLocalAccess());
-        request->request->setLocalAccessor(
-            [] (ThreadContext *tc, PacketPtr pkt) { return Cycles(1); });
-    }
 
     requests.push(request);
     inst->inLSQ = true;

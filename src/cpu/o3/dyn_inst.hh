@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2016, 2021 ARM Limited
+ * Copyright (c) 2010, 2016 ARM Limited
  * Copyright (c) 2013 Advanced Micro Devices, Inc.
  * All rights reserved
  *
@@ -110,8 +110,6 @@ class DynInst : public ExecContext, public RefCounted
             const StaticInstPtr &_macroop);
 
     ~DynInst();
-
-    void advanceFSM();
 
     /** Executes the instruction.*/
     Fault execute();
@@ -399,7 +397,7 @@ class DynInst : public ExecContext, public RefCounted
     Fault initiateMemRead(Addr addr, unsigned size, Request::Flags flags,
             const std::vector<bool> &byte_enable) override;
 
-    Fault initiateMemMgmtCmd(Request::Flags flags) override;
+    Fault initiateHtmCmd(Request::Flags flags) override;
 
     Fault writeMem(uint8_t *data, unsigned size, Addr addr,
                    Request::Flags flags, uint64_t *res,
@@ -682,10 +680,21 @@ class DynInst : public ExecContext, public RefCounted
     /** Returns the number of destination registers. */
     size_t numDestRegs() const { return numDests(); }
 
-    size_t
-    numDestRegs(RegClassType type) const
+    // the following are used to track physical register usage
+    // for machines with separate int & FP reg files
+    int8_t numFPDestRegs()  const { return staticInst->numFPDestRegs(); }
+    int8_t numIntDestRegs() const { return staticInst->numIntDestRegs(); }
+    int8_t numCCDestRegs() const { return staticInst->numCCDestRegs(); }
+    int8_t numVecDestRegs() const { return staticInst->numVecDestRegs(); }
+    int8_t
+    numVecElemDestRegs() const
     {
-        return staticInst->numDestRegs(type);
+        return staticInst->numVecElemDestRegs();
+    }
+    int8_t
+    numVecPredDestRegs() const
+    {
+        return staticInst->numVecPredDestRegs();
     }
 
     /** Returns the logical register index of the i'th destination register. */
@@ -1082,30 +1091,29 @@ class DynInst : public ExecContext, public RefCounted
             const RegId& original_dest_reg = staticInst->destRegIdx(idx);
             switch (original_dest_reg.classValue()) {
               case IntRegClass:
+                setIntRegOperand(staticInst.get(), idx,
+                        cpu->readIntReg(prev_phys_reg));
+                break;
               case FloatRegClass:
-              case CCRegClass:
-                setRegOperand(staticInst.get(), idx,
-                        cpu->getReg(prev_phys_reg));
+                setFloatRegOperandBits(staticInst.get(), idx,
+                        cpu->readFloatReg(prev_phys_reg));
                 break;
               case VecRegClass:
-                {
-                    TheISA::VecRegContainer val;
-                    cpu->getReg(prev_phys_reg, &val);
-                    setRegOperand(staticInst.get(), idx, &val);
-                }
+                setVecRegOperand(staticInst.get(), idx,
+                        cpu->readVecReg(prev_phys_reg));
                 break;
               case VecElemClass:
-                setRegOperand(staticInst.get(), idx,
-                        cpu->getReg(prev_phys_reg));
+                setVecElemOperand(staticInst.get(), idx,
+                        cpu->readVecElem(prev_phys_reg));
                 break;
               case VecPredRegClass:
-                {
-                    TheISA::VecPredRegContainer val;
-                    cpu->getReg(prev_phys_reg, &val);
-                    setRegOperand(staticInst.get(), idx, &val);
-                }
+                setVecPredRegOperand(staticInst.get(), idx,
+                        cpu->readVecPredReg(prev_phys_reg));
                 break;
-              case InvalidRegClass:
+              case CCRegClass:
+                setCCRegOperand(staticInst.get(), idx,
+                        cpu->readCCReg(prev_phys_reg));
+                break;
               case MiscRegClass:
                 // no need to forward misc reg values
                 break;
@@ -1132,50 +1140,102 @@ class DynInst : public ExecContext, public RefCounted
     // to do).
 
     RegVal
-    getRegOperand(const StaticInst *si, int idx) override
+    readIntRegOperand(const StaticInst *si, int idx) override
     {
-        const PhysRegIdPtr reg = renamedSrcIdx(idx);
-        if (reg->is(InvalidRegClass))
-            return 0;
-        return cpu->getReg(reg);
+        return cpu->readIntReg(renamedSrcIdx(idx));
     }
 
-    void
-    getRegOperand(const StaticInst *si, int idx, void *val) override
+    RegVal
+    readFloatRegOperandBits(const StaticInst *si, int idx) override
     {
-        const PhysRegIdPtr reg = renamedSrcIdx(idx);
-        if (reg->is(InvalidRegClass))
-            return;
-        cpu->getReg(reg, val);
+        return cpu->readFloatReg(renamedSrcIdx(idx));
     }
 
-    void *
-    getWritableRegOperand(const StaticInst *si, int idx) override
+    const TheISA::VecRegContainer&
+    readVecRegOperand(const StaticInst *si, int idx) const override
     {
-        return cpu->getWritableReg(renamedDestIdx(idx));
+        return cpu->readVecReg(renamedSrcIdx(idx));
+    }
+
+    /**
+     * Read destination vector register operand for modification.
+     */
+    TheISA::VecRegContainer&
+    getWritableVecRegOperand(const StaticInst *si, int idx) override
+    {
+        return cpu->getWritableVecReg(renamedDestIdx(idx));
+    }
+
+    RegVal
+    readVecElemOperand(const StaticInst *si, int idx) const override
+    {
+        return cpu->readVecElem(renamedSrcIdx(idx));
+    }
+
+    const TheISA::VecPredRegContainer&
+    readVecPredRegOperand(const StaticInst *si, int idx) const override
+    {
+        return cpu->readVecPredReg(renamedSrcIdx(idx));
+    }
+
+    TheISA::VecPredRegContainer&
+    getWritableVecPredRegOperand(const StaticInst *si, int idx) override
+    {
+        return cpu->getWritableVecPredReg(renamedDestIdx(idx));
+    }
+
+    RegVal
+    readCCRegOperand(const StaticInst *si, int idx) override
+    {
+        return cpu->readCCReg(renamedSrcIdx(idx));
     }
 
     /** @todo: Make results into arrays so they can handle multiple dest
      *  registers.
      */
     void
-    setRegOperand(const StaticInst *si, int idx, RegVal val) override
+    setIntRegOperand(const StaticInst *si, int idx, RegVal val) override
     {
-        const PhysRegIdPtr reg = renamedDestIdx(idx);
-        if (reg->is(InvalidRegClass))
-            return;
-        cpu->setReg(reg, val);
+        cpu->setIntReg(renamedDestIdx(idx), val);
         setResult(val);
     }
 
     void
-    setRegOperand(const StaticInst *si, int idx, const void *val) override
+    setFloatRegOperandBits(const StaticInst *si, int idx, RegVal val) override
     {
-        const PhysRegIdPtr reg = renamedDestIdx(idx);
-        if (reg->is(InvalidRegClass))
-            return;
-        cpu->setReg(reg, val);
-        //TODO setResult
+        cpu->setFloatReg(renamedDestIdx(idx), val);
+        setResult(val);
+    }
+
+    void
+    setVecRegOperand(const StaticInst *si, int idx,
+                     const TheISA::VecRegContainer& val) override
+    {
+        cpu->setVecReg(renamedDestIdx(idx), val);
+        setResult(val);
+    }
+
+    void
+    setVecElemOperand(const StaticInst *si, int idx, RegVal val) override
+    {
+        int reg_idx = idx;
+        cpu->setVecElem(renamedDestIdx(reg_idx), val);
+        setResult(val);
+    }
+
+    void
+    setVecPredRegOperand(const StaticInst *si, int idx,
+                         const TheISA::VecPredRegContainer& val) override
+    {
+        cpu->setVecPredReg(renamedDestIdx(idx), val);
+        setResult(val);
+    }
+
+    void
+    setCCRegOperand(const StaticInst *si, int idx, RegVal val) override
+    {
+        cpu->setCCReg(renamedDestIdx(idx), val);
+        setResult(val);
     }
 };
 

@@ -59,7 +59,7 @@
 namespace gem5
 {
 
-struct BaseO3CPUParams;
+struct O3CPUParams;
 
 namespace o3
 {
@@ -132,7 +132,7 @@ class Commit
 
   public:
     /** Construct a Commit with the given parameters. */
-    Commit(CPU *_cpu, const BaseO3CPUParams &params);
+    Commit(CPU *_cpu, const O3CPUParams &params);
 
     /** Returns the name of the Commit. */
     std::string name() const;
@@ -478,11 +478,6 @@ class Commit
         statistics::Scalar branchMispredicts;
         /** Distribution of the number of committed instructions each cycle. */
         statistics::Distribution numCommittedDist;
-
-        /** SpecCheck TEMPORARY */
-        statistics::Scalar flushedWindows;
-        statistics::Scalar vulnWindows;
-        statistics::Scalar uniqVulnWindows;
 
         /** Total number of instructions committed. */
         statistics::Vector instsCommitted;

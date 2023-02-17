@@ -145,10 +145,6 @@ class Kvm
 
     /** Support for getting and setting the kvm_xsave structure. */
     bool capXSave() const;
-
-    /** Support for ARM IRQ line layout 2 **/
-    bool capIRQLineLayout2() const;
-
     /** @} */
 
 #if defined(__i386__) || defined(__x86_64__)
@@ -420,8 +416,10 @@ class KvmVM : public SimObject
     /** Global KVM interface */
     Kvm *kvm;
 
-    /** Verify gem5 configuration will support KVM emulation */
-    bool validEnvironment() const;
+    /**
+     * Initialize system pointer. Invoked by system object.
+     */
+    void setSystem(System *s);
 
     /**
       * Get the VCPUID for a given context

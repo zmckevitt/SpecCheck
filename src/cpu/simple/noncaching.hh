@@ -41,7 +41,7 @@
 #include "base/addr_range_map.hh"
 #include "cpu/simple/atomic.hh"
 #include "mem/backdoor.hh"
-#include "params/BaseNonCachingSimpleCPU.hh"
+#include "params/NonCachingSimpleCPU.hh"
 
 namespace gem5
 {
@@ -53,7 +53,7 @@ namespace gem5
 class NonCachingSimpleCPU : public AtomicSimpleCPU
 {
   public:
-    NonCachingSimpleCPU(const BaseNonCachingSimpleCPUParams &p);
+    NonCachingSimpleCPU(const NonCachingSimpleCPUParams &p);
 
     void verifyMemoryMode() const override;
 

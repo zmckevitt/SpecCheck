@@ -123,8 +123,8 @@ FutexMap::wakeup_bitset(Addr addr, uint64_t tgid, int bitmask)
 
         if (waiter.checkMask(bitmask)) {
             waiter.tc->activate();
-            waitingTcs.erase(waiter.tc);
             iter = waiterList.erase(iter);
+            waitingTcs.erase(waiter.tc);
             woken_up++;
         } else {
             ++iter;

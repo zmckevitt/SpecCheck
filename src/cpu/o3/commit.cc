@@ -64,13 +64,9 @@
 #include "debug/ExecFaulting.hh"
 #include "debug/HtmCpu.hh"
 #include "debug/O3PipeView.hh"
-#include "debug/SpecCheck.hh"
-#include "params/BaseO3CPU.hh"
+#include "params/O3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
-
-// TEMPORARY - preprocessor flags maybe?
-#include "cpu/o3/SpecCheck.hh"
 
 namespace gem5
 {
@@ -86,7 +82,7 @@ Commit::processTrapEvent(ThreadID tid)
     trapSquash[tid] = true;
 }
 
-Commit::Commit(CPU *_cpu, const BaseO3CPUParams &params)
+Commit::Commit(CPU *_cpu, const O3CPUParams &params)
     : commitPolicy(params.smtCommitPolicy),
       cpu(_cpu),
       iewToCommitDelay(params.iewToCommitDelay),
@@ -161,13 +157,6 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
                "The number of times a branch was mispredicted"),
       ADD_STAT(numCommittedDist, statistics::units::Count::get(),
                "Number of insts commited each cycle"),
-      // TEMPORARY, preprocessor flags maybe?
-      ADD_STAT(flushedWindows, statistics::units::Count::get(),
-               "number of flushed windows"),
-      ADD_STAT(vulnWindows, statistics::units::Count::get(),
-               "number of vulnerable windows"),
-      ADD_STAT(uniqVulnWindows, statistics::units::Count::get(),
-               "number of unique vulnerable windows"),
       ADD_STAT(instsCommitted, statistics::units::Count::get(),
                "Number of instructions committed"),
       ADD_STAT(opsCommitted, statistics::units::Count::get(),
@@ -1023,27 +1012,11 @@ Commit::commitInsts()
 
             // Record that the number of ROB entries has changed.
             changedROBNumEntries[tid] = true;
-
-            // commitTick will not be set
-            if (debug::SpecCheck) {
-                head_inst->advanceFSM();
-                stats.flushedWindows = numFlushedWindows;
-                stats.vulnWindows = numVulnWindows;
-                stats.uniqVulnWindows = numUniqWindows;
-            }
         } else {
             set(pc[tid], head_inst->pcState());
 
             // Try to commit the head instruction.
             bool commit_success = commitHead(head_inst, num_committed);
-
-            // commitTick set in commitHead
-            if (debug::SpecCheck) {
-                head_inst->advanceFSM();
-                stats.flushedWindows = numFlushedWindows;
-                stats.vulnWindows = numVulnWindows;
-                stats.uniqVulnWindows = numUniqWindows;
-            }
 
             if (commit_success) {
                 ++num_committed;
@@ -1093,7 +1066,6 @@ Commit::commitInsts()
                 cpu->traceFunctions(pc[tid]->instAddr());
 
                 head_inst->staticInst->advancePC(*pc[tid]);
-
 
                 // Keep track of the last sequence number commited
                 lastCommitedSeqNum[tid] = head_inst->seqNum;
@@ -1159,8 +1131,6 @@ Commit::commitInsts()
             }
         }
     }
-
-
 
     DPRINTF(CommitRate, "%i\n", num_committed);
     stats.numCommittedDist.sample(num_committed);
@@ -1343,7 +1313,7 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
     rob->retireHead(tid);
 
 #if TRACING_ON
-    if (debug::O3PipeView || debug::SpecCheck) {
+    if (debug::O3PipeView) {
         head_inst->commitTick = curTick() - head_inst->fetchTick;
     }
 #endif

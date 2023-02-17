@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021 ARM Limited
+ * Copyright (c) 2020 ARM Limited
  * All rights reserved.
  *
  * The license below extends only to copyright in the software and shall
@@ -46,9 +46,9 @@ namespace gem5
 namespace ruby
 {
 
-Consumer::Consumer(ClockedObject *_em, Event::Priority ev_prio)
+Consumer::Consumer(ClockedObject *_em)
     : m_wakeup_event([this]{ processCurrentEvent(); },
-                    "Consumer Event", false, ev_prio),
+                    "Consumer Event", false),
       em(_em)
 { }
 

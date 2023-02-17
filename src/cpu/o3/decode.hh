@@ -52,7 +52,7 @@
 namespace gem5
 {
 
-struct BaseO3CPUParams;
+struct O3CPUParams;
 
 namespace o3
 {
@@ -98,7 +98,7 @@ class Decode
 
   public:
     /** Decode constructor. */
-    Decode(CPU *_cpu, const BaseO3CPUParams &params);
+    Decode(CPU *_cpu, const O3CPUParams &params);
 
     void startupStage();
 

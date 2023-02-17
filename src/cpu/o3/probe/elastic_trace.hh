@@ -190,6 +190,8 @@ class ElasticTrace : public ProbeListenerObject
      */
     bool firstWin;
 
+    RegIndex zeroReg;
+
     /**
      * @defgroup InstExecInfo Struct for storing information before an
      * instruction reaches the commit stage, e.g. execute timestamp.

@@ -71,22 +71,22 @@ ArmISA::HTMCheckpoint::reset()
 void
 ArmISA::HTMCheckpoint::save(ThreadContext *tc)
 {
-    sp = tc->getReg(int_reg::Spx);
+    sp = tc->readIntReg(INTREG_SPX);
     // below should be enabled on condition that GICV3 is enabled
     //tme_checkpoint->iccPmrEl1 = tc->readMiscReg(MISCREG_ICC_PMR_EL1);
     nzcv = tc->readMiscReg(MISCREG_NZCV);
     daif = tc->readMiscReg(MISCREG_DAIF);
-    for (auto n = 0; n < int_reg::NumArchRegs; n++) {
-        x[n] = tc->getReg(RegId(IntRegClass, n));
+    for (auto n = 0; n < NUM_ARCH_INTREGS; n++) {
+        x[n] = tc->readIntReg(n);
     }
     // TODO first detect if FP is enabled at this EL
     for (auto n = 0; n < NumVecRegs; n++) {
         RegId idx = RegId(VecRegClass, n);
-        tc->getReg(idx, &z[n]);
+        z[n] = tc->readVecReg(idx);
     }
     for (auto n = 0; n < NumVecPredRegs; n++) {
         RegId idx = RegId(VecPredRegClass, n);
-        tc->getReg(idx, &p[n]);
+        p[n] = tc->readVecPredReg(idx);
     }
     fpcr = tc->readMiscReg(MISCREG_FPCR);
     fpsr = tc->readMiscReg(MISCREG_FPSR);
@@ -98,22 +98,22 @@ ArmISA::HTMCheckpoint::save(ThreadContext *tc)
 void
 ArmISA::HTMCheckpoint::restore(ThreadContext *tc, HtmFailureFaultCause cause)
 {
-    tc->setReg(int_reg::Spx, sp);
+    tc->setIntReg(INTREG_SPX, sp);
     // below should be enabled on condition that GICV3 is enabled
     //tc->setMiscReg(MISCREG_ICC_PMR_EL1, tme_checkpoint->iccPmrEl1);
     tc->setMiscReg(MISCREG_NZCV, nzcv);
     tc->setMiscReg(MISCREG_DAIF, daif);
-    for (auto n = 0; n < int_reg::NumArchRegs; n++) {
-        tc->setReg(RegId(IntRegClass, n), x[n]);
+    for (auto n = 0; n < NUM_ARCH_INTREGS; n++) {
+        tc->setIntReg(n, x[n]);
     }
     // TODO first detect if FP is enabled at this EL
     for (auto n = 0; n < NumVecRegs; n++) {
         RegId idx = RegId(VecRegClass, n);
-        tc->setReg(idx, &z[n]);
+        tc->setVecReg(idx, z[n]);
     }
     for (auto n = 0; n < NumVecPredRegs; n++) {
         RegId idx = RegId(VecPredRegClass, n);
-        tc->setReg(idx, &p[n]);
+        tc->setVecPredReg(idx, p[n]);
     }
     tc->setMiscReg(MISCREG_FPCR, fpcr);
     tc->setMiscReg(MISCREG_FPSR, fpsr);
@@ -158,7 +158,7 @@ ArmISA::HTMCheckpoint::restore(ThreadContext *tc, HtmFailureFaultCause cause)
         replaceBits(error_code, 15, 1);
     if (interrupt)
         replaceBits(error_code, 23, 1);
-    tc->setReg(RegId(IntRegClass, rt), error_code);
+    tc->setIntReg(rt, error_code);
 
     // set next PC
     pcstateckpt.uReset();

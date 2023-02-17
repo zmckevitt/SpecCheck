@@ -1,4 +1,4 @@
 #!/bin/sh
 
-rm -rf *~ *.pyc *.pyo *.dif *.out __pycache__
+rm -f *~ *.pyc *.pyo *.dif *.out 
 

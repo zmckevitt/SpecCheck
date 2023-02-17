@@ -103,7 +103,7 @@ class ArmRelease(SimObject):
 
 class Armv8(ArmRelease):
     extensions = [
-        'LPAE', 'VIRTUALIZATION', 'SECURITY'
+        'LPAE'
     ]
 
 class ArmDefaultRelease(Armv8):

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2013, 2016-2022 Arm Limited
+ * Copyright (c) 2010-2013, 2016-2021 Arm Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -197,8 +197,6 @@ void
 MMU::invalidateMiscReg()
 {
     s1State.miscRegValid = false;
-    s1State.computeAddrTop.flush();
-    s2State.computeAddrTop.flush();
 }
 
 Fault
@@ -239,12 +237,11 @@ MMU::translateSe(const RequestPtr &req, ThreadContext *tc, Mode mode,
     updateMiscReg(tc, NormalTran, state.isStage2);
     Addr vaddr_tainted = req->getVaddr();
     Addr vaddr = 0;
-    if (state.aarch64) {
+    if (state.aarch64)
         vaddr = purifyTaggedAddr(vaddr_tainted, tc, state.aarch64EL,
-            static_cast<TCR>(state.ttbcr), mode==Execute, state);
-    } else {
+                                 (TCR)state.ttbcr, mode==Execute);
+    else
         vaddr = vaddr_tainted;
-    }
     Request::Flags flags = req->getFlags();
 
     bool is_fetch = (mode == Execute);
@@ -483,7 +480,7 @@ MMU::checkPermissions64(TlbEntry *te, const RequestPtr &req, Mode mode,
 
     Addr vaddr_tainted = req->getVaddr();
     Addr vaddr = purifyTaggedAddr(vaddr_tainted, tc, state.aarch64EL,
-        static_cast<TCR>(state.ttbcr), mode==Execute, state);
+        (TCR)state.ttbcr, mode==Execute);
 
     Request::Flags flags = req->getFlags();
     bool is_fetch  = (mode == Execute);
@@ -774,7 +771,8 @@ MMU::checkPAN(ThreadContext *tc, uint8_t ap, const RequestPtr &req, Mode mode,
     // gem5)
     // 4) Instructions to be treated as unprivileged, unless
     // HCR_EL2.{E2H, TGE} == {1, 0}
-    if (HaveExt(tc, ArmExtension::FEAT_PAN) && state.cpsr.pan && (ap & 0x1) &&
+    const AA64MMFR1 mmfr1 = tc->readMiscReg(MISCREG_ID_AA64MMFR1_EL1);
+    if (mmfr1.pan && state.cpsr.pan && (ap & 0x1) &&
         mode != BaseMMU::Execute) {
 
         if (req->isCacheMaintenance() &&
@@ -789,18 +787,6 @@ MMU::checkPAN(ThreadContext *tc, uint8_t ap, const RequestPtr &req, Mode mode,
     }
 
     return false;
-}
-
-Addr
-MMU::purifyTaggedAddr(Addr vaddr_tainted, ThreadContext *tc, ExceptionLevel el,
-                      TCR tcr, bool is_inst, CachedState& state)
-{
-    const bool selbit = bits(vaddr_tainted, 55);
-
-    // Call the memoized version of computeAddrTop
-    const auto topbit = state.computeAddrTop(tc, selbit, is_inst, tcr, el);
-
-    return maskTaggedAddr(vaddr_tainted, tc, el, topbit);
 }
 
 Fault
@@ -849,8 +835,8 @@ MMU::translateMmuOff(ThreadContext *tc, const RequestPtr &req, Mode mode,
     // Set memory attributes
     TlbEntry temp_te;
     temp_te.ns = !state.isSecure;
-    bool dc = (HaveExt(tc, ArmExtension::FEAT_VHE) &&
-               state.hcr.e2h == 1 && state.hcr.tge == 1) ? 0: state.hcr.dc;
+    bool dc = (HaveVirtHostExt(tc)
+               && state.hcr.e2h == 1 && state.hcr.tge == 1) ? 0: state.hcr.dc;
     bool i_cacheability = state.sctlr.i && !state.sctlr.m;
     if (state.isStage2 || !dc || state.isSecure ||
        (state.isHyp && !(tran_type & S1CTran))) {
@@ -961,12 +947,11 @@ MMU::translateFs(const RequestPtr &req, ThreadContext *tc, Mode mode,
 
     Addr vaddr_tainted = req->getVaddr();
     Addr vaddr = 0;
-    if (state.aarch64) {
+    if (state.aarch64)
         vaddr = purifyTaggedAddr(vaddr_tainted, tc, state.aarch64EL,
-            static_cast<TCR>(state.ttbcr), mode==Execute, state);
-    } else {
+            (TCR)state.ttbcr, mode==Execute);
+    else
         vaddr = vaddr_tainted;
-    }
     Request::Flags flags = req->getFlags();
 
     bool is_fetch  = (mode == Execute);
@@ -1007,8 +992,7 @@ MMU::translateFs(const RequestPtr &req, ThreadContext *tc, Mode mode,
     }
 
     bool vm = state.hcr.vm;
-    if (HaveExt(tc, ArmExtension::FEAT_VHE) &&
-        state.hcr.e2h == 1 && state.hcr.tge == 1)
+    if (HaveVirtHostExt(tc) && state.hcr.e2h == 1 && state.hcr.tge ==1)
         vm = 0;
     else if (state.hcr.dc == 1)
         vm = 1;
@@ -1233,8 +1217,7 @@ MMU::CachedState::updateMiscReg(ThreadContext *tc,
         // determine EL we need to translate in
         switch (aarch64EL) {
           case EL0:
-            if (HaveExt(tc, ArmExtension::FEAT_VHE) &&
-                hcr.tge == 1 && hcr.e2h == 1) {
+            if (HaveVirtHostExt(tc) && hcr.tge == 1 && hcr.e2h == 1) {
                 // VHE code for EL2&0 regime
                 sctlr = tc->readMiscReg(MISCREG_SCTLR_EL2);
                 ttbcr = tc->readMiscReg(MISCREG_TCR_EL2);
@@ -1296,8 +1279,7 @@ MMU::CachedState::updateMiscReg(ThreadContext *tc,
             isHyp &= (tran_type & S1S2NsTran) == 0;
             isHyp &= (tran_type & S1CTran)    == 0;
             bool vm = hcr.vm;
-            if (HaveExt(tc, ArmExtension::FEAT_VHE) &&
-                hcr.e2h == 1 && hcr.tge ==1) {
+            if (HaveVirtHostExt(tc) && hcr.e2h == 1 && hcr.tge ==1) {
                 vm = 0;
             }
 
@@ -1461,7 +1443,7 @@ MMU::getTE(TlbEntry **te, const RequestPtr &req, ThreadContext *tc, Mode mode,
     ExceptionLevel target_el = state.aarch64 ? state.aarch64EL : EL1;
     if (state.aarch64) {
         vaddr = purifyTaggedAddr(vaddr_tainted, tc, target_el,
-            static_cast<TCR>(state.ttbcr), mode==Execute, state);
+            (TCR)state.ttbcr, mode==Execute);
     } else {
         vaddr = vaddr_tainted;
     }

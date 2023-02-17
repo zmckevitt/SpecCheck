@@ -118,8 +118,7 @@ let {{
             self.codeBlobs["memacc_code"] = accCode
 
             wbDecl = None
-            pcDecl = "MicroUopSetPCCPSR(machInst, int_reg::Ureg0, " \
-                     "int_reg::Ureg1, int_reg::Ureg2);"
+            pcDecl = "MicroUopSetPCCPSR(machInst, INTREG_UREG0, INTREG_UREG1, INTREG_UREG2);"
 
             if self.writeback:
                 wbDecl = "MicroAddiUop(machInst, base, base, %d);" % wbDiff

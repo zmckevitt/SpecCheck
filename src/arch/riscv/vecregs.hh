@@ -46,6 +46,8 @@
 #ifndef __ARCH_RISCV_VECREGS_HH__
 #define __ARCH_RISCV_VECREGS_HH__
 
+#include <cstdint>
+
 #include "arch/generic/vec_pred_reg.hh"
 #include "arch/generic/vec_reg.hh"
 
@@ -56,7 +58,11 @@ namespace RiscvISA
 {
 
 // Not applicable to RISC-V
+using VecElem = ::gem5::DummyVecElem;
 using VecRegContainer = ::gem5::DummyVecRegContainer;
+constexpr unsigned NumVecElemPerVecReg = ::gem5::DummyNumVecElemPerVecReg;
+
+// Not applicable to RISC-V
 using VecPredRegContainer = ::gem5::DummyVecPredRegContainer;
 
 } // namespace RiscvISA

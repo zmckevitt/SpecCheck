@@ -86,9 +86,8 @@ def test_parsec(
             resource_path,
         ],
         valid_isas=(constants.x86_tag,),
-        valid_hosts=(constants.host_x86_64_tag,),
+        valid_hosts=constants.supported_hosts,
         length=length,
-        uses_kvm=True,
     )
 
 

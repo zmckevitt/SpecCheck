@@ -801,7 +801,6 @@ transition(I, Atomic, A) {TagArrayRead} {
 
   transition(WI, WBAck,I) {
     dt_deallocateTBE;
-    wada_wakeUpAllDependentsAddr;
     pr_popResponseQueue;
   }
 }

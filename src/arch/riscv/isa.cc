@@ -47,10 +47,7 @@
 #include "base/trace.hh"
 #include "cpu/base.hh"
 #include "debug/Checkpoint.hh"
-#include "debug/FloatRegs.hh"
-#include "debug/IntRegs.hh"
 #include "debug/LLSC.hh"
-#include "debug/MiscRegs.hh"
 #include "debug/RiscvMisc.hh"
 #include "mem/packet.hh"
 #include "mem/request.hh"
@@ -196,13 +193,13 @@ namespace RiscvISA
 
 ISA::ISA(const Params &p) : BaseISA(p)
 {
-    _regClasses.emplace_back(NumIntRegs, debug::IntRegs);
-    _regClasses.emplace_back(NumFloatRegs, debug::FloatRegs);
-    _regClasses.emplace_back(1, debug::IntRegs); // Not applicable to RISCV
-    _regClasses.emplace_back(2, debug::IntRegs); // Not applicable to RISCV
-    _regClasses.emplace_back(1, debug::IntRegs); // Not applicable to RISCV
-    _regClasses.emplace_back(0, debug::IntRegs); // Not applicable to RISCV
-    _regClasses.emplace_back(NUM_MISCREGS, debug::MiscRegs);
+    _regClasses.emplace_back(NumIntRegs, 0);
+    _regClasses.emplace_back(NumFloatRegs);
+    _regClasses.emplace_back(1); // Not applicable to RISCV
+    _regClasses.emplace_back(2); // Not applicable to RISCV
+    _regClasses.emplace_back(1); // Not applicable to RISCV
+    _regClasses.emplace_back(0); // Not applicable to RISCV
+    _regClasses.emplace_back(NUM_MISCREGS);
 
     miscRegFile.resize(NUM_MISCREGS);
     clear();
@@ -507,29 +504,30 @@ ISA::unserialize(CheckpointIn &cp)
 
 const int WARN_FAILURE = 10000;
 
-const Addr INVALID_RESERVATION_ADDR = (Addr) -1;
-std::unordered_map<int, Addr> load_reservation_addrs;
+// RISC-V allows multiple locks per hart, but each SC has to unlock the most
+// recent one, so we use a stack here.
+std::unordered_map<int, std::stack<Addr>> locked_addrs;
 
 void
 ISA::handleLockedSnoop(PacketPtr pkt, Addr cacheBlockMask)
 {
-    Addr& load_reservation_addr = load_reservation_addrs[tc->contextId()];
+    std::stack<Addr>& locked_addr_stack = locked_addrs[tc->contextId()];
 
-    if (load_reservation_addr == INVALID_RESERVATION_ADDR)
+    if (locked_addr_stack.empty())
         return;
     Addr snoop_addr = pkt->getAddr() & cacheBlockMask;
     DPRINTF(LLSC, "Locked snoop on address %x.\n", snoop_addr);
-    if ((load_reservation_addr & cacheBlockMask) == snoop_addr)
-        load_reservation_addr = INVALID_RESERVATION_ADDR;
+    if ((locked_addr_stack.top() & cacheBlockMask) == snoop_addr)
+        locked_addr_stack.pop();
 }
 
 
 void
 ISA::handleLockedRead(const RequestPtr &req)
 {
-    Addr& load_reservation_addr = load_reservation_addrs[tc->contextId()];
+    std::stack<Addr>& locked_addr_stack = locked_addrs[tc->contextId()];
 
-    load_reservation_addr = req->getPaddr() & ~0xF;
+    locked_addr_stack.push(req->getPaddr() & ~0xF);
     DPRINTF(LLSC, "[cid:%d]: Reserved address %x.\n",
             req->contextId(), req->getPaddr() & ~0xF);
 }
@@ -537,25 +535,23 @@ ISA::handleLockedRead(const RequestPtr &req)
 bool
 ISA::handleLockedWrite(const RequestPtr &req, Addr cacheBlockMask)
 {
-    Addr& load_reservation_addr = load_reservation_addrs[tc->contextId()];
-    bool lr_addr_empty = (load_reservation_addr == INVALID_RESERVATION_ADDR);
+    std::stack<Addr>& locked_addr_stack = locked_addrs[tc->contextId()];
 
     // Normally RISC-V uses zero to indicate success and nonzero to indicate
     // failure (right now only 1 is reserved), but in gem5 zero indicates
     // failure and one indicates success, so here we conform to that (it should
     // be switched in the instruction's implementation)
 
-    DPRINTF(LLSC, "[cid:%d]: load_reservation_addrs empty? %s.\n",
-            req->contextId(),
-            lr_addr_empty ? "yes" : "no");
-    if (!lr_addr_empty) {
+    DPRINTF(LLSC, "[cid:%d]: locked_addrs empty? %s.\n", req->contextId(),
+            locked_addr_stack.empty() ? "yes" : "no");
+    if (!locked_addr_stack.empty()) {
         DPRINTF(LLSC, "[cid:%d]: addr = %x.\n", req->contextId(),
                 req->getPaddr() & ~0xF);
         DPRINTF(LLSC, "[cid:%d]: last locked addr = %x.\n", req->contextId(),
-                load_reservation_addr);
+                locked_addr_stack.top());
     }
-    if (lr_addr_empty
-            || load_reservation_addr != ((req->getPaddr() & ~0xF))) {
+    if (locked_addr_stack.empty()
+            || locked_addr_stack.top() != ((req->getPaddr() & ~0xF))) {
         req->setExtraData(0);
         int stCondFailures = tc->readStCondFailures();
         tc->setStCondFailures(++stCondFailures);
@@ -568,7 +564,6 @@ ISA::handleLockedWrite(const RequestPtr &req, Addr cacheBlockMask)
     if (req->isUncacheable()) {
         req->setExtraData(2);
     }
-
     return true;
 }
 
@@ -580,17 +575,3 @@ ISA::globalClearExclusive()
 
 } // namespace RiscvISA
 } // namespace gem5
-
-std::ostream &
-operator<<(std::ostream &os, gem5::RiscvISA::PrivilegeMode pm)
-{
-    switch (pm) {
-    case gem5::RiscvISA::PRV_U:
-        return os << "PRV_U";
-    case gem5::RiscvISA::PRV_S:
-        return os << "PRV_S";
-    case gem5::RiscvISA::PRV_M:
-        return os << "PRV_M";
-    }
-    return os << "PRV_<invalid>";
-}

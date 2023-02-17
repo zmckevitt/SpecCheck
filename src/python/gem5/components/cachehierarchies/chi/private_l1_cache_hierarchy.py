@@ -35,6 +35,7 @@ from gem5.components.cachehierarchies.abstract_cache_hierarchy import (
 )
 from gem5.coherence_protocol import CoherenceProtocol
 from gem5.isas import ISA
+from gem5.runtime import get_runtime_isa
 from gem5.utils.requires import requires
 from gem5.utils.override import overrides
 from gem5.components.boards.abstract_board import AbstractBoard
@@ -154,7 +155,7 @@ class PrivateL1CacheHierarchy(AbstractRubyCacheHierarchy):
             network=self.ruby_system.network,
             core=core,
             cache_line_size=board.get_cache_line_size(),
-            target_isa=board.get_processor().get_isa(),
+            target_isa=get_runtime_isa(),
             clk_domain=board.get_clock_domain(),
         )
         cluster.icache = PrivateL1MOESICache(
@@ -163,7 +164,7 @@ class PrivateL1CacheHierarchy(AbstractRubyCacheHierarchy):
             network=self.ruby_system.network,
             core=core,
             cache_line_size=board.get_cache_line_size(),
-            target_isa=board.get_processor().get_isa(),
+            target_isa=get_runtime_isa(),
             clk_domain=board.get_clock_domain(),
         )
 
@@ -193,7 +194,7 @@ class PrivateL1CacheHierarchy(AbstractRubyCacheHierarchy):
         )
 
         # Connect the interrupt ports
-        if board.get_processor().get_isa() == ISA.X86:
+        if get_runtime_isa() == ISA.X86:
             int_req_port = cluster.dcache.sequencer.interrupt_out_port
             int_resp_port = cluster.dcache.sequencer.in_ports
             core.connect_interrupt(int_req_port, int_resp_port)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2022 Arm Limited
+ * Copyright (c) 2019-2020 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -193,7 +193,10 @@ Gicv3Redistributor::read(Addr addr, size_t size, bool is_secure_access)
       }
 
       case GICR_PIDR2: { // Peripheral ID2 Register
-          return gic->getDistributor()->gicdPidr2;
+          uint8_t arch_rev = 0x3; // 0x3 GICv3
+          uint8_t jedec = 0x1; // JEP code
+          uint8_t des_1 = 0x3; // JEP106 identification code, bits[6:4]
+          return (arch_rev << 4) | (jedec << 3) | (des_1 << 0);
       }
 
       case GICR_PIDR3: // Peripheral ID3 Register
@@ -801,9 +804,6 @@ Gicv3Redistributor::updateDistributor()
 void
 Gicv3Redistributor::update()
 {
-    if (gic->blockIntUpdate())
-        return;
-
     for (int int_id = 0; int_id < Gicv3::SGI_MAX + Gicv3::PPI_MAX; int_id++) {
         Gicv3::GroupId int_group = getIntGroup(int_id);
         bool group_enabled = distributor->groupEnabled(int_group);
@@ -1014,7 +1014,17 @@ uint32_t
 Gicv3Redistributor::getAffinity() const
 {
     ThreadContext *tc = gic->getSystem()->threads[cpuId];
-    return gem5::ArmISA::getAffinity(gic->getSystem(), tc);
+    uint64_t mpidr = getMPIDR(gic->getSystem(), tc);
+    /*
+     * Aff3 = MPIDR[39:32]
+     * (Note getMPIDR() returns uint32_t so Aff3 is always 0...)
+     * Aff2 = MPIDR[23:16]
+     * Aff1 = MPIDR[15:8]
+     * Aff0 = MPIDR[7:0]
+     * affinity = Aff3.Aff2.Aff1.Aff0
+     */
+    uint64_t affinity = ((mpidr & 0xff00000000) >> 8) | (mpidr & (0xffffff));
+    return affinity;
 }
 
 bool
@@ -1041,34 +1051,6 @@ Gicv3Redistributor::canBeSelectedFor1toNInterrupt(Gicv3::GroupId group) const
     }
 
     return true;
-}
-
-void
-Gicv3Redistributor::copy(Gicv3Registers *from, Gicv3Registers *to)
-{
-    const auto affinity = getAffinity();
-    // SGI_Base regs
-    gic->copyRedistRegister(from, to, affinity, GICR_CTLR);
-    gic->copyRedistRegister(from, to, affinity, GICR_WAKER);
-
-    gic->clearRedistRegister(to, affinity, GICR_ICENABLER0);
-    gic->clearRedistRegister(to, affinity, GICR_ICPENDR0);
-    gic->clearRedistRegister(to, affinity, GICR_ICACTIVER0);
-
-    gic->copyRedistRegister(from, to, affinity, GICR_ISENABLER0);
-    gic->copyRedistRegister(from, to, affinity, GICR_ISPENDR0);
-    gic->copyRedistRegister(from, to, affinity, GICR_ISACTIVER0);
-    gic->copyRedistRegister(from, to, affinity, GICR_ICFGR0);
-    gic->copyRedistRegister(from, to, affinity, GICR_ICFGR1);
-    gic->copyRedistRegister(from, to, affinity, GICR_IGRPMODR0);
-    gic->copyRedistRegister(from, to, affinity, GICR_NSACR);
-
-    gic->copyRedistRange(from, to, affinity,
-        GICR_IPRIORITYR.start(), GICR_IPRIORITYR.size());
-
-    // RD_Base regs
-    gic->copyRedistRegister(from, to, affinity, GICR_PROPBASER);
-    gic->copyRedistRegister(from, to, affinity, GICR_PENDBASER);
 }
 
 void

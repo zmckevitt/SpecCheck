@@ -120,7 +120,7 @@ class RemoteGDB : public BaseRemoteGDB
   public:
     RemoteGDB(System *_system, int _port);
     BaseGdbRegCache *gdbRegs() override;
-    bool checkBpKind(size_t kind) override;
+    bool checkBpLen(size_t len) override;
     std::vector<std::string>
     availableFeatures() const override
     {

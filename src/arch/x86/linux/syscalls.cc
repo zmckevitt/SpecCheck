@@ -76,19 +76,19 @@ archPrctlFunc(SyscallDesc *desc, ThreadContext *tc, int code, uint64_t addr)
     {
       // Each of these valid options should actually check addr.
       case SetFS:
-        tc->setMiscRegNoEffect(misc_reg::FsBase, addr);
-        tc->setMiscRegNoEffect(misc_reg::FsEffBase, addr);
+        tc->setMiscRegNoEffect(MISCREG_FS_BASE, addr);
+        tc->setMiscRegNoEffect(MISCREG_FS_EFF_BASE, addr);
         return 0;
       case GetFS:
-        fsBase = tc->readMiscRegNoEffect(misc_reg::FsBase);
+        fsBase = tc->readMiscRegNoEffect(MISCREG_FS_BASE);
         p.write(addr, fsBase);
         return 0;
       case SetGS:
-        tc->setMiscRegNoEffect(misc_reg::GsBase, addr);
-        tc->setMiscRegNoEffect(misc_reg::GsEffBase, addr);
+        tc->setMiscRegNoEffect(MISCREG_GS_BASE, addr);
+        tc->setMiscRegNoEffect(MISCREG_GS_EFF_BASE, addr);
         return 0;
       case GetGS:
-        gsBase = tc->readMiscRegNoEffect(misc_reg::GsBase);
+        gsBase = tc->readMiscRegNoEffect(MISCREG_GS_BASE);
         p.write(addr, gsBase);
         return 0;
       default:

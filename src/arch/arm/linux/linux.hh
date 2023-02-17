@@ -290,7 +290,7 @@ class ArmLinux32 : public ArmLinux, public OpenFlagTable<ArmLinux32>
         ArmLinux::archClone(flags, pp, cp, ptc, ctc, stack, tls);
 
         if (stack)
-            ctc->setReg(ArmISA::int_reg::Sp, stack);
+            ctc->setIntReg(ArmISA::INTREG_SP, stack);
     }
 };
 
@@ -544,7 +544,7 @@ class ArmLinux64 : public ArmLinux, public OpenFlagTable<ArmLinux64>
         ArmLinux::archClone(flags, pp, cp, ptc, ctc, stack, tls);
 
         if (stack)
-            ctc->setReg(ArmISA::int_reg::Sp0, stack);
+            ctc->setIntReg(ArmISA::INTREG_SP0, stack);
     }
 };
 

@@ -33,7 +33,6 @@
 
 #include <cstring>
 
-#include "arch/amdgpu/common/gpu_translation_state.hh"
 #include "arch/x86/page_size.hh"
 #include "base/logging.hh"
 #include "debug/GPUTLB.hh"
@@ -150,8 +149,7 @@ TLBCoalescer::updatePhysAddresses(PacketPtr pkt)
     GpuTranslationState *sender_state =
         safe_cast<GpuTranslationState*>(pkt->senderState);
 
-    X86ISA::TlbEntry *tlb_entry =
-        safe_cast<X86ISA::TlbEntry *>(sender_state->tlbEntry);
+    TheISA::TlbEntry *tlb_entry = sender_state->tlbEntry;
     assert(tlb_entry);
     Addr first_entry_vaddr = tlb_entry->vaddr;
     Addr first_entry_paddr = tlb_entry->paddr;

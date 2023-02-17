@@ -38,32 +38,32 @@
 
 import os
 
-Import('env')
+Import('main')
 
 thermal = False
 
 # See if we got a cloned DRAMSim3 repo as a subdirectory and set the
 # HAVE_DRAMSIM flag accordingly
 if not os.path.exists(Dir('.').srcnode().abspath + '/DRAMsim3'):
-    env['HAVE_DRAMSIM3'] = False
+    main['HAVE_DRAMSIM3'] = False
     Return()
 
 # We have got the folder, so add the library and build the wrappers
-env['HAVE_DRAMSIM3'] = True
+main['HAVE_DRAMSIM3'] = True
 
 
 dramsim_path = os.path.join(Dir('#').abspath, 'ext/dramsim3/DRAMsim3/')
 
 if thermal:
     superlu_path = os.path.join(dramsim_path, 'ext/SuperLU_MT_3.1/lib')
-    env.Prepend(CPPPATH=Dir('.'))
-    env.Append(LIBS=['dramsim3', 'superlu_mt_OPENMP', 'm', 'f77blas',
+    main.Prepend(CPPPATH=Dir('.'))
+    main.Append(LIBS=['dramsim3', 'superlu_mt_OPENMP', 'm', 'f77blas',
                       'atlas', 'gomp'],
                 LIBPATH=[dramsim_path, superlu_path])
 else:
-    env.Prepend(CPPPATH=Dir('.'))
+    main.Prepend(CPPPATH=Dir('.'))
     # a littel hacky but can get a shared library working
-    env.Append(LIBS=['dramsim3', 'gomp'],
+    main.Append(LIBS=['dramsim3', 'gomp'],
                 LIBPATH=[dramsim_path],  # compile-time lookup
                 RPATH=[dramsim_path],  # runtime lookup
                 CPPPATH=[dramsim_path+'/src/'])

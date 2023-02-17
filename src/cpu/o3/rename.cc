@@ -50,8 +50,7 @@
 #include "debug/Activity.hh"
 #include "debug/O3PipeView.hh"
 #include "debug/Rename.hh"
-#include "debug/SpecCheck.hh"
-#include "params/BaseO3CPU.hh"
+#include "params/O3CPU.hh"
 
 namespace gem5
 {
@@ -59,7 +58,7 @@ namespace gem5
 namespace o3
 {
 
-Rename::Rename(CPU *_cpu, const BaseO3CPUParams &params)
+Rename::Rename(CPU *_cpu, const O3CPUParams &params)
     : cpu(_cpu),
       iewToRenameDelay(params.iewToRenameDelay),
       decodeToRenameDelay(params.decodeToRenameDelay),
@@ -657,7 +656,12 @@ Rename::renameInsts(ThreadID tid)
 
         // Check here to make sure there are enough destination registers
         // to rename to.  Otherwise block.
-        if (!renameMap[tid]->canRename(inst)) {
+        if (!renameMap[tid]->canRename(inst->numIntDestRegs(),
+                                       inst->numFPDestRegs(),
+                                       inst->numVecDestRegs(),
+                                       inst->numVecElemDestRegs(),
+                                       inst->numVecPredDestRegs(),
+                                       inst->numCCDestRegs())) {
             DPRINTF(Rename,
                     "Blocking due to "
                     " lack of free physical registers to rename to.\n");
@@ -795,7 +799,7 @@ Rename::sortInsts()
         const DynInstPtr &inst = fromDecode->insts[i];
         insts[inst->threadNumber].push_back(inst);
 #if TRACING_ON
-        if (debug::O3PipeView || debug::SpecCheck) {
+        if (debug::O3PipeView) {
             inst->renameTick = curTick() - inst->fetchTick;
         }
 #endif
@@ -1018,8 +1022,6 @@ Rename::renameSrcRegs(const DynInstPtr &inst, ThreadID tid)
 
         renamed_reg = map->lookup(tc->flattenRegId(src_reg));
         switch (src_reg.classValue()) {
-          case InvalidRegClass:
-            break;
           case IntRegClass:
             stats.intLookups++;
             break;
@@ -1253,12 +1255,12 @@ Rename::readFreeEntries(ThreadID tid)
             freeEntries[tid].lqEntries,
             freeEntries[tid].sqEntries,
             renameMap[tid]->numFreeEntries(),
-            renameMap[tid]->numFreeEntries(IntRegClass),
-            renameMap[tid]->numFreeEntries(FloatRegClass),
-            renameMap[tid]->numFreeEntries(VecRegClass),
-            renameMap[tid]->numFreeEntries(VecElemClass),
-            renameMap[tid]->numFreeEntries(VecPredRegClass),
-            renameMap[tid]->numFreeEntries(CCRegClass));
+            renameMap[tid]->numFreeIntEntries(),
+            renameMap[tid]->numFreeFloatEntries(),
+            renameMap[tid]->numFreeVecEntries(),
+            renameMap[tid]->numFreeVecElemEntries(),
+            renameMap[tid]->numFreePredEntries(),
+            renameMap[tid]->numFreeCCEntries());
 
     DPRINTF(Rename, "[tid:%i] %i instructions not yet in ROB\n",
             tid, instsInProgress[tid]);

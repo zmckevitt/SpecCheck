@@ -44,8 +44,7 @@
 namespace gem5
 {
 
-NonCachingSimpleCPU::NonCachingSimpleCPU(
-        const BaseNonCachingSimpleCPUParams &p)
+NonCachingSimpleCPU::NonCachingSimpleCPU(const NonCachingSimpleCPUParams &p)
     : AtomicSimpleCPU(p)
 {
     assert(p.numThreads == 1);

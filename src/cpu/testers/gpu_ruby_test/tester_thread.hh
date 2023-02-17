@@ -178,7 +178,6 @@ class TesterThread : public ClockedObject
     // constraints and is ready to issue
     bool isNextActionReady();
     void issueNextAction();
-    int getTokensNeeded();
 
     // issue Ops to Ruby memory
     // must be implemented by a child class

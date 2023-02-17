@@ -567,39 +567,39 @@ namespace ArmISA
         void initializeMiscRegMetadata();
 
         RegVal miscRegs[NUM_MISCREGS];
-        const RegId *intRegMap;
+        const IntRegIndex *intRegMap;
 
         void
         updateRegMap(CPSR cpsr)
         {
             if (cpsr.width == 0) {
-                intRegMap = int_reg::Reg64Map;
+                intRegMap = IntReg64Map;
             } else {
                 switch (cpsr.mode) {
                   case MODE_USER:
                   case MODE_SYSTEM:
-                    intRegMap = int_reg::RegUsrMap;
+                    intRegMap = IntRegUsrMap;
                     break;
                   case MODE_FIQ:
-                    intRegMap = int_reg::RegFiqMap;
+                    intRegMap = IntRegFiqMap;
                     break;
                   case MODE_IRQ:
-                    intRegMap = int_reg::RegIrqMap;
+                    intRegMap = IntRegIrqMap;
                     break;
                   case MODE_SVC:
-                    intRegMap = int_reg::RegSvcMap;
+                    intRegMap = IntRegSvcMap;
                     break;
                   case MODE_MON:
-                    intRegMap = int_reg::RegMonMap;
+                    intRegMap = IntRegMonMap;
                     break;
                   case MODE_ABORT:
-                    intRegMap = int_reg::RegAbtMap;
+                    intRegMap = IntRegAbtMap;
                     break;
                   case MODE_HYP:
-                    intRegMap = int_reg::RegHypMap;
+                    intRegMap = IntRegHypMap;
                     break;
                   case MODE_UNDEFINED:
-                    intRegMap = int_reg::RegUndMap;
+                    intRegMap = IntRegUndMap;
                     break;
                   default:
                     panic("Unrecognized mode setting in CPSR.\n");
@@ -609,6 +609,10 @@ namespace ArmISA
 
         BaseISADevice &getGenericTimer();
         BaseISADevice &getGICv3CPUInterface();
+
+      private:
+        void assert32() { assert(((CPSR)readMiscReg(MISCREG_CPSR)).width); }
+        void assert64() { assert(!((CPSR)readMiscReg(MISCREG_CPSR)).width); }
 
       public:
         void clear();
@@ -638,8 +642,6 @@ namespace ArmISA
             return arm_isa->getSelfDebug();
         }
 
-        const ArmRelease* getRelease() const { return release; }
-
         RegVal readMiscRegNoEffect(int misc_reg) const;
         RegVal readMiscReg(int misc_reg);
         void setMiscRegNoEffect(int misc_reg, RegVal val);
@@ -656,7 +658,8 @@ namespace ArmISA
               case VecRegClass:
                 return RegId(VecRegClass, flattenVecIndex(regId.index()));
               case VecElemClass:
-                return RegId(VecElemClass, flattenVecElemIndex(regId.index()));
+                return RegId(VecElemClass, flattenVecElemIndex(regId.index()),
+                             regId.elemIndex());
               case VecPredRegClass:
                 return RegId(VecPredRegClass,
                              flattenVecPredIndex(regId.index()));
@@ -664,35 +667,33 @@ namespace ArmISA
                 return RegId(CCRegClass, flattenCCIndex(regId.index()));
               case MiscRegClass:
                 return RegId(MiscRegClass, flattenMiscIndex(regId.index()));
-              case InvalidRegClass:
-                return RegId();
             }
-            panic("Unrecognized register class %d.", regId.classValue());
+            return RegId();
         }
 
         int
         flattenIntIndex(int reg) const
         {
             assert(reg >= 0);
-            if (reg < int_reg::NumArchRegs) {
+            if (reg < NUM_ARCH_INTREGS) {
                 return intRegMap[reg];
-            } else if (reg < int_reg::NumRegs) {
+            } else if (reg < NUM_INTREGS) {
                 return reg;
-            } else if (reg == int_reg::Spx) {
+            } else if (reg == INTREG_SPX) {
                 CPSR cpsr = miscRegs[MISCREG_CPSR];
                 ExceptionLevel el = opModeToEL(
                     (OperatingMode) (uint8_t) cpsr.mode);
                 if (!cpsr.sp && el != EL0)
-                    return int_reg::Sp0;
+                    return INTREG_SP0;
                 switch (el) {
                   case EL3:
-                    return int_reg::Sp3;
+                    return INTREG_SP3;
                   case EL2:
-                    return int_reg::Sp2;
+                    return INTREG_SP2;
                   case EL1:
-                    return int_reg::Sp1;
+                    return INTREG_SP1;
                   case EL0:
-                    return int_reg::Sp0;
+                    return INTREG_SP0;
                   default:
                     panic("Invalid exception level");
                     return 0;  // Never happens.
@@ -857,7 +858,73 @@ namespace ArmISA
          * Returns the enconcing equivalent when VHE is implemented and
          * HCR_EL2.E2H is enabled and executing at EL2
          */
-        int redirectRegVHE(int misc_reg);
+        int
+        redirectRegVHE(int misc_reg)
+        {
+            const HCR hcr = readMiscRegNoEffect(MISCREG_HCR_EL2);
+            if (hcr.e2h == 0x0 || currEL() != EL2)
+                return misc_reg;
+            SCR scr = readMiscRegNoEffect(MISCREG_SCR_EL3);
+            bool sec_el2 = scr.eel2 && release->has(ArmExtension::FEAT_SEL2);
+            switch(misc_reg) {
+              case MISCREG_SPSR_EL1:
+                  return MISCREG_SPSR_EL2;
+              case MISCREG_ELR_EL1:
+                  return MISCREG_ELR_EL2;
+              case MISCREG_SCTLR_EL1:
+                  return MISCREG_SCTLR_EL2;
+              case MISCREG_CPACR_EL1:
+                  return MISCREG_CPTR_EL2;
+        //      case :
+        //          return MISCREG_TRFCR_EL2;
+              case MISCREG_TTBR0_EL1:
+                  return MISCREG_TTBR0_EL2;
+              case MISCREG_TTBR1_EL1:
+                  return MISCREG_TTBR1_EL2;
+              case MISCREG_TCR_EL1:
+                  return MISCREG_TCR_EL2;
+              case MISCREG_AFSR0_EL1:
+                  return MISCREG_AFSR0_EL2;
+              case MISCREG_AFSR1_EL1:
+                  return MISCREG_AFSR1_EL2;
+              case MISCREG_ESR_EL1:
+                  return MISCREG_ESR_EL2;
+              case MISCREG_FAR_EL1:
+                  return MISCREG_FAR_EL2;
+              case MISCREG_MAIR_EL1:
+                  return MISCREG_MAIR_EL2;
+              case MISCREG_AMAIR_EL1:
+                  return MISCREG_AMAIR_EL2;
+              case MISCREG_VBAR_EL1:
+                  return MISCREG_VBAR_EL2;
+              case MISCREG_CONTEXTIDR_EL1:
+                  return MISCREG_CONTEXTIDR_EL2;
+              case MISCREG_CNTKCTL_EL1:
+                  return MISCREG_CNTHCTL_EL2;
+              case MISCREG_CNTP_TVAL_EL0:
+                  return sec_el2? MISCREG_CNTHPS_TVAL_EL2:
+                                 MISCREG_CNTHP_TVAL_EL2;
+              case MISCREG_CNTP_CTL_EL0:
+                  return sec_el2? MISCREG_CNTHPS_CTL_EL2:
+                                 MISCREG_CNTHP_CTL_EL2;
+              case MISCREG_CNTP_CVAL_EL0:
+                  return sec_el2? MISCREG_CNTHPS_CVAL_EL2:
+                                 MISCREG_CNTHP_CVAL_EL2;
+              case MISCREG_CNTV_TVAL_EL0:
+                  return sec_el2? MISCREG_CNTHVS_TVAL_EL2:
+                                 MISCREG_CNTHV_TVAL_EL2;
+              case MISCREG_CNTV_CTL_EL0:
+                  return sec_el2? MISCREG_CNTHVS_CTL_EL2:
+                                 MISCREG_CNTHV_CTL_EL2;
+              case MISCREG_CNTV_CVAL_EL0:
+                  return sec_el2? MISCREG_CNTHVS_CVAL_EL2:
+                                 MISCREG_CNTHV_CVAL_EL2;
+              default:
+                  return misc_reg;
+            }
+            /*should not be accessible */
+            return misc_reg;
+        }
 
         int
         snsBankedIndex64(MiscRegIndex reg, bool ns) const

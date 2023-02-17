@@ -85,8 +85,6 @@ Kernel::init()
 void
 Kernel::regStats()
 {
-    gem5::SimObject::regStats();
-
     if (scMainFiber.finished() || stopAfterCallbacks)
         return;
 

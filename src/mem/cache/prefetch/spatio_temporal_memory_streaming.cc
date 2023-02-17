@@ -55,9 +55,7 @@ STeMS::STeMS(const STeMSPrefetcherParams &p)
                          p.pattern_sequence_table_replacement_policy,
                          ActiveGenerationTableEntry(
                              spatialRegionSize / blkSize)),
-    rmob(p.region_miss_order_buffer_entries),
-    addDuplicateEntriesToRMOB(p.add_duplicate_entries_to_rmob),
-    lastTriggerCounter(0)
+    rmob(p.region_miss_order_buffer_entries)
 {
     fatal_if(!isPowerOf2(spatialRegionSize),
         "The spatial region size must be a power of 2.");
@@ -75,7 +73,6 @@ STeMS::checkForActiveGenerationsEnd()
         if (agt_entry.isValid()) {
             bool generation_ended = false;
             bool sr_is_secure = agt_entry.isSecure();
-            Addr pst_addr = 0;
             for (auto &seq_entry : agt_entry.sequence) {
                 if (seq_entry.counter > 0) {
                     Addr cache_addr =
@@ -83,8 +80,6 @@ STeMS::checkForActiveGenerationsEnd()
                     if (!inCache(cache_addr, sr_is_secure) &&
                             !inMissQueue(cache_addr, sr_is_secure)) {
                         generation_ended = true;
-                        pst_addr = (agt_entry.pc << spatialRegionSizeBits)
-                                    + seq_entry.offset;
                         break;
                     }
                 }
@@ -92,13 +87,13 @@ STeMS::checkForActiveGenerationsEnd()
             if (generation_ended) {
                 // PST is indexed using the PC (secure bit is unused)
                 ActiveGenerationTableEntry *pst_entry =
-                    patternSequenceTable.findEntry(pst_addr,
+                    patternSequenceTable.findEntry(agt_entry.pc,
                                                    false /*unused*/);
                 if (pst_entry == nullptr) {
                     // Tipically an entry will not exist
-                    pst_entry = patternSequenceTable.findVictim(pst_addr);
+                    pst_entry = patternSequenceTable.findVictim(agt_entry.pc);
                     assert(pst_entry != nullptr);
-                    patternSequenceTable.insertEntry(pst_addr,
+                    patternSequenceTable.insertEntry(agt_entry.pc,
                             false /*unused*/, pst_entry);
                 } else {
                     patternSequenceTable.accessEntry(pst_entry);
@@ -120,16 +115,6 @@ STeMS::addToRMOB(Addr sr_addr, Addr pst_addr, unsigned int delta)
     rmob_entry.srAddress = sr_addr;
     rmob_entry.pstAddress = pst_addr;
     rmob_entry.delta = delta;
-
-    if (!addDuplicateEntriesToRMOB) {
-        for (const auto& entry : rmob) {
-            if (entry.srAddress == sr_addr &&
-                entry.pstAddress == pst_addr &&
-                entry.delta == delta) {
-                return;
-            }
-        }
-    }
 
     rmob.push_back(rmob_entry);
 }

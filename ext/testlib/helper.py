@@ -41,8 +41,7 @@
 '''
 Helper classes for writing tests with this test library.
 '''
-from collections import namedtuple
-from collections.abc import MutableSet
+from collections import MutableSet, namedtuple
 
 import difflib
 import errno

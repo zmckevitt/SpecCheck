@@ -37,11 +37,11 @@
 #
 # Authors: Andreas Sandberg
 
-Import('env')
+Import('main')
 
-env.Prepend(CPPPATH=Dir('./include'))
+main.Prepend(CPPPATH=Dir('./include'))
 
-nomali = env.Clone()
+nomali = main.Clone()
 nomali.Append(CCFLAGS=['-Wno-ignored-qualifiers'])
 
 nomali_sources = [
@@ -60,6 +60,6 @@ nomali_sources = [
 
 nomali.Library('nomali', [  nomali.SharedObject(f) for f in nomali_sources ])
 
-env.Append(LIBS=['nomali'])
-env.Prepend(LIBPATH=[Dir('.')])
+main.Append(LIBS=['nomali'])
+main.Prepend(LIBPATH=[Dir('.')])
 

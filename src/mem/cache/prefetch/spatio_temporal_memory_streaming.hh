@@ -175,9 +175,6 @@ class STeMS : public Queued
     /** Region Miss Order Buffer (RMOB) */
     CircularQueue<RegionMissOrderBufferEntry> rmob;
 
-    /** Add duplicate entries to RMOB  */
-    bool addDuplicateEntriesToRMOB;
-
     /** Counter to keep the count of accesses between trigger accesses */
     unsigned int lastTriggerCounter;
 

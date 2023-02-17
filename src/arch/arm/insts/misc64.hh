@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013,2017-2019, 2021 Arm Limited
+ * Copyright (c) 2011-2013,2017-2019 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -60,14 +60,14 @@ class ImmOp64 : public ArmISA::ArmStaticInst
 class RegRegImmImmOp64 : public ArmISA::ArmStaticInst
 {
   protected:
-    RegIndex dest;
-    RegIndex op1;
+    ArmISA::IntRegIndex dest;
+    ArmISA::IntRegIndex op1;
     uint64_t imm1;
     uint64_t imm2;
 
     RegRegImmImmOp64(const char *mnem, ArmISA::ExtMachInst _machInst,
-                     OpClass __opClass, RegIndex _dest,
-                     RegIndex _op1, uint64_t _imm1,
+                     OpClass __opClass, ArmISA::IntRegIndex _dest,
+                     ArmISA::IntRegIndex _op1, uint64_t _imm1,
                      int64_t _imm2) :
         ArmISA::ArmStaticInst(mnem, _machInst, __opClass),
         dest(_dest), op1(_op1), imm1(_imm1), imm2(_imm2)
@@ -80,14 +80,14 @@ class RegRegImmImmOp64 : public ArmISA::ArmStaticInst
 class RegRegRegImmOp64 : public ArmISA::ArmStaticInst
 {
   protected:
-    RegIndex dest;
-    RegIndex op1;
-    RegIndex op2;
+    ArmISA::IntRegIndex dest;
+    ArmISA::IntRegIndex op1;
+    ArmISA::IntRegIndex op2;
     uint64_t imm;
 
     RegRegRegImmOp64(const char *mnem, ArmISA::ExtMachInst _machInst,
-                     OpClass __opClass, RegIndex _dest,
-                     RegIndex _op1, RegIndex _op2,
+                     OpClass __opClass, ArmISA::IntRegIndex _dest,
+                     ArmISA::IntRegIndex _op1, ArmISA::IntRegIndex _op2,
                      uint64_t _imm) :
         ArmISA::ArmStaticInst(mnem, _machInst, __opClass),
         dest(_dest), op1(_op1), op2(_op2), imm(_imm)
@@ -177,12 +177,12 @@ class MiscRegRegImmOp64 : public MiscRegOp64
 {
   protected:
     ArmISA::MiscRegIndex dest;
-    RegIndex op1;
+    ArmISA::IntRegIndex op1;
     uint32_t imm;
 
     MiscRegRegImmOp64(const char *mnem, ArmISA::ExtMachInst _machInst,
                       OpClass __opClass, ArmISA::MiscRegIndex _dest,
-                      RegIndex _op1, uint32_t _imm) :
+                      ArmISA::IntRegIndex _op1, uint32_t _imm) :
         MiscRegOp64(mnem, _machInst, __opClass, false),
         dest(_dest), op1(_op1), imm(_imm)
     {}
@@ -194,12 +194,12 @@ class MiscRegRegImmOp64 : public MiscRegOp64
 class RegMiscRegImmOp64 : public MiscRegOp64
 {
   protected:
-    RegIndex dest;
+    ArmISA::IntRegIndex dest;
     ArmISA::MiscRegIndex op1;
     uint32_t imm;
 
     RegMiscRegImmOp64(const char *mnem, ArmISA::ExtMachInst _machInst,
-                      OpClass __opClass, RegIndex _dest,
+                      OpClass __opClass, ArmISA::IntRegIndex _dest,
                       ArmISA::MiscRegIndex _op1, uint32_t _imm) :
         MiscRegOp64(mnem, _machInst, __opClass, true),
         dest(_dest), op1(_op1), imm(_imm)
@@ -240,29 +240,16 @@ class MiscRegImplDefined64 : public MiscRegOp64
 class RegNone : public ArmISA::ArmStaticInst
 {
   protected:
-    RegIndex dest;
+    ArmISA::IntRegIndex dest;
 
     RegNone(const char *mnem, ArmISA::ExtMachInst _machInst,
-            OpClass __opClass, RegIndex _dest) :
+            OpClass __opClass, ArmISA::IntRegIndex _dest) :
         ArmISA::ArmStaticInst(mnem, _machInst, __opClass),
         dest(_dest)
     {}
 
     std::string generateDisassembly(
         Addr pc, const loader::SymbolTable *symtab) const;
-};
-
-class TlbiOp64 : public MiscRegRegImmOp64
-{
-  protected:
-    TlbiOp64(const char *mnem, ArmISA::ExtMachInst _machInst,
-             OpClass __opClass, ArmISA::MiscRegIndex _dest,
-             RegIndex _op1, uint32_t _imm) :
-        MiscRegRegImmOp64(mnem, _machInst, __opClass, _dest, _op1, _imm)
-    {}
-
-    void performTlbi(ExecContext *xc,
-                     ArmISA::MiscRegIndex idx, RegVal value) const;
 };
 
 } // namespace gem5

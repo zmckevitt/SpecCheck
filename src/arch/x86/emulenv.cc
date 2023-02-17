@@ -52,77 +52,74 @@ void EmulEnv::doModRM(const ExtMachInst & machInst)
     //Use the SIB byte for addressing if the modrm byte calls for it.
     if (machInst.modRM.rm == 4 && machInst.addrSize != 2) {
         scale = 1 << machInst.sib.scale;
-        index = RegId(IntRegClass, machInst.sib.index | (machInst.rex.x << 3));
-        base = RegId(IntRegClass, machInst.sib.base | (machInst.rex.b << 3));
+        index = machInst.sib.index | (machInst.rex.x << 3);
+        base = machInst.sib.base | (machInst.rex.b << 3);
         //In this special case, we don't use a base. The displacement also
         //changes, but that's managed by the decoder.
-        if (machInst.sib.base == (RegIndex)int_reg::Rbp &&
-                machInst.modRM.mod == 0)
-            base = int_reg::T0;
+        if (machInst.sib.base == INTREG_RBP && machInst.modRM.mod == 0)
+            base = INTREG_T0;
         //In -this- special case, we don't use an index.
-        if (index == int_reg::Rsp)
-            index = int_reg::T0;
+        if (index == INTREG_RSP)
+            index = INTREG_T0;
     } else {
         if (machInst.addrSize == 2) {
             unsigned rm = machInst.modRM.rm;
             if (rm <= 3) {
                 scale = 1;
                 if (rm < 2) {
-                    base = int_reg::Rbx;
+                    base = INTREG_RBX;
                 } else {
-                    base = int_reg::Rbp;
+                    base = INTREG_RBP;
                 }
-                index = RegId(IntRegClass,
-                        (rm % 2) ? int_reg::Rdi : int_reg::Rsi);
+                index = (rm % 2) ? INTREG_RDI : INTREG_RSI;
             } else {
                 scale = 0;
                 switch (rm) {
                   case 4:
-                    base = int_reg::Rsi;
+                    base = INTREG_RSI;
                     break;
                   case 5:
-                    base = int_reg::Rdi;
+                    base = INTREG_RDI;
                     break;
                   case 6:
-                    // There is a special case when mod is 0 and rm is 6.
-                    base = machInst.modRM.mod == 0 ? int_reg::T0 :
-                        int_reg::Rbp;
+                    base = INTREG_RBP;
                     break;
                   case 7:
-                    base = int_reg::Rbx;
+                    base = INTREG_RBX;
                     break;
                 }
             }
         } else {
             scale = 0;
-            base = RegId(IntRegClass,
-                    machInst.modRM.rm | (machInst.rex.b << 3));
+            base = machInst.modRM.rm | (machInst.rex.b << 3);
             if (machInst.modRM.mod == 0 && machInst.modRM.rm == 5) {
                 //Since we need to use a different encoding of this
                 //instruction anyway, just ignore the base in those cases
-                base = int_reg::T0;
+                base = INTREG_T0;
             }
         }
     }
-    //Figure out what segment to use.
-    if (base != int_reg::Rbp && base != int_reg::Rsp) {
-        seg = segment_idx::Ds;
+    //Figure out what segment to use. This won't be entirely accurate since
+    //the presence of a displacement is supposed to make the instruction
+    //default to the data segment.
+    if ((base != INTREG_RBP && base != INTREG_RSP) || machInst.dispSize) {
+        seg = SEGMENT_REG_DS;
+        //Handle any segment override that might have been in the instruction
+        int segFromInst = machInst.legacy.seg;
+        if (segFromInst)
+            seg = (SegmentRegIndex)(segFromInst - 1);
     } else {
-        seg = segment_idx::Ss;
+        seg = SEGMENT_REG_SS;
     }
-    //Handle any segment override that might have been in the instruction
-    int segFromInst = machInst.legacy.seg;
-    if (segFromInst)
-        seg = segFromInst - 1;
 }
 
 void EmulEnv::setSeg(const ExtMachInst & machInst)
 {
-    seg = segment_idx::Ds;
+    seg = SEGMENT_REG_DS;
     //Handle any segment override that might have been in the instruction
     int segFromInst = machInst.legacy.seg;
     if (segFromInst)
-        seg = segFromInst - 1;
+        seg = (SegmentRegIndex)(segFromInst - 1);
 }
 
 } // namespace gem5

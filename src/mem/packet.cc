@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2019, 2021 ARM Limited
+ * Copyright (c) 2011-2019 ARM Limited
  * All rights reserved
  *
  * The license below extends only to copyright in the software and shall
@@ -57,7 +57,6 @@
 #include "base/logging.hh"
 #include "base/trace.hh"
 #include "mem/packet_access.hh"
-#include "sim/bufval.hh"
 
 namespace gem5
 {
@@ -165,18 +164,6 @@ MemCmd::commandInfo[] =
     /* StoreCondResp */
     { {IsWrite, IsLlsc, IsResponse},
             InvalidCmd, "StoreCondResp" },
-    /* LockedRMWReadReq */
-    { {IsRead, IsLockedRMW, NeedsWritable, IsRequest, NeedsResponse},
-            LockedRMWReadResp, "LockedRMWReadReq" },
-    /* LockedRMWReadResp */
-    { {IsRead, IsLockedRMW, NeedsWritable, IsResponse, HasData},
-            InvalidCmd, "LockedRMWReadResp" },
-    /* LockedRMWWriteReq */
-    { {IsWrite, IsLockedRMW, NeedsWritable, IsRequest, NeedsResponse,
-           HasData}, LockedRMWWriteResp, "LockedRMWWriteReq" },
-    /* LockedRMWWriteResp */
-    { {IsWrite, IsLockedRMW, NeedsWritable, IsResponse},
-            InvalidCmd, "LockedRMWWriteResp" },
     /* SwapReq -- for Swap ldstub type operations */
     { {IsRead, IsWrite, NeedsWritable, IsRequest, HasData, NeedsResponse},
         SwapResp, "SwapReq" },
@@ -232,7 +219,6 @@ MemCmd::commandInfo[] =
     { {IsRead, IsRequest, NeedsResponse}, HTMReqResp, "HTMReq" },
     { {IsRead, IsResponse}, InvalidCmd, "HTMReqResp" },
     { {IsRead, IsRequest}, InvalidCmd, "HTMAbort" },
-    { {IsRequest}, InvalidCmd, "TlbiExtSync" },
 };
 
 AddrRange
@@ -347,17 +333,40 @@ Packet::popSenderState()
 uint64_t
 Packet::getUintX(ByteOrder endian) const
 {
-    auto [val, success] =
-        gem5::getUintX(getConstPtr<void>(), getSize(), endian);
-    panic_if(!success, "%i isn't a supported word size.\n", getSize());
-    return val;
+    switch(getSize()) {
+      case 1:
+        return (uint64_t)get<uint8_t>(endian);
+      case 2:
+        return (uint64_t)get<uint16_t>(endian);
+      case 4:
+        return (uint64_t)get<uint32_t>(endian);
+      case 8:
+        return (uint64_t)get<uint64_t>(endian);
+      default:
+        panic("%i isn't a supported word size.\n", getSize());
+    }
 }
 
 void
 Packet::setUintX(uint64_t w, ByteOrder endian)
 {
-    bool success = gem5::setUintX(w, getPtr<void>(), getSize(), endian);
-    panic_if(!success, "%i isn't a supported word size.\n", getSize());
+    switch(getSize()) {
+      case 1:
+        set<uint8_t>((uint8_t)w, endian);
+        break;
+      case 2:
+        set<uint16_t>((uint16_t)w, endian);
+        break;
+      case 4:
+        set<uint32_t>((uint32_t)w, endian);
+        break;
+      case 8:
+        set<uint64_t>((uint64_t)w, endian);
+        break;
+      default:
+        panic("%i isn't a supported word size.\n", getSize());
+    }
+
 }
 
 void

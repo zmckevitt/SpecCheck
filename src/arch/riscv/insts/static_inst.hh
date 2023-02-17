@@ -80,6 +80,7 @@ class RiscvStaticInst : public StaticInst
         PCStateBase *ret_pc_ptr = call_pc.clone();
         auto &ret_pc = ret_pc_ptr->as<PCState>();
         ret_pc.advance();
+        ret_pc.pc(cur_pc.as<PCState>().npc());
         return std::unique_ptr<PCStateBase>{ret_pc_ptr};
     }
 

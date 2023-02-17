@@ -370,8 +370,7 @@ SyscallDescTable<EmuLinux::SyscallABI32> EmuLinux::syscallDescs32 = {
     { 320, "utimensat" },
     { 321, "signalfd" },
     { 322, "timerfd" },
-    { 323, "eventfd", eventfdFunc<X86Linux32> },
-    { 355, "getrandom", getrandomFunc<X86Linux32>}
+    { 323, "eventfd", eventfdFunc<X86Linux32> }
 };
 
 } // namespace X86ISA

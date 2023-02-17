@@ -28,7 +28,7 @@
 from .kernel_disk_workload import KernelDiskWorkload
 from ...resources.resource import AbstractResource
 from ...utils.override import overrides
-from .abstract_system_board import AbstractSystemBoard
+from .abstract_board import AbstractBoard
 from ...isas import ISA
 
 from m5.objects import (
@@ -57,11 +57,12 @@ from m5.util.convert import toMemorySize
 from ..processors.abstract_processor import AbstractProcessor
 from ..memory.abstract_memory_system import AbstractMemorySystem
 from ..cachehierarchies.abstract_cache_hierarchy import AbstractCacheHierarchy
+from ...utils.requires import requires
 
 from typing import List, Sequence
 
 
-class X86Board(AbstractSystemBoard, KernelDiskWorkload):
+class X86Board(AbstractBoard, KernelDiskWorkload):
     """
     A board capable of full system simulation for X86.
 
@@ -84,11 +85,9 @@ class X86Board(AbstractSystemBoard, KernelDiskWorkload):
             cache_hierarchy=cache_hierarchy,
         )
 
-        if self.get_processor().get_isa() != ISA.X86:
-            raise Exception("The X86Board requires a processor using the X86 "
-                f"ISA. Current processor ISA: '{processor.get_isa().name}'.")
+        requires(isa_required=ISA.X86)
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def _setup_board(self) -> None:
         self.pc = Pc()
 
@@ -99,8 +98,6 @@ class X86Board(AbstractSystemBoard, KernelDiskWorkload):
 
         # Set up all of the I/O.
         self._setup_io_devices()
-
-        self.m5ops_base = 0xffff0000
 
     def _setup_io_devices(self):
         """ Sets up the x86 IO devices.
@@ -251,31 +248,31 @@ class X86Board(AbstractSystemBoard, KernelDiskWorkload):
 
         self.workload.e820_table.entries = entries
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def has_io_bus(self) -> bool:
         return True
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def get_io_bus(self) -> BaseXBar:
         return self.iobus
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def has_dma_ports(self) -> bool:
         return True
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def get_dma_ports(self) -> Sequence[Port]:
         return [self.pc.south_bridge.ide.dma, self.iobus.mem_side_ports]
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def has_coherent_io(self) -> bool:
         return True
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def get_mem_side_coherent_io_port(self) -> Port:
         return self.iobus.mem_side_ports
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def _setup_memory_ranges(self):
         memory = self.get_memory()
 

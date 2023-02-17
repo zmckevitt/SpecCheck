@@ -42,6 +42,7 @@
 #define __MEM_RUBY_NETWORK_TOPOLOGY_HH__
 
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "mem/ruby/common/TypeDefines.hh"
@@ -64,6 +65,7 @@ class Network;
  * represent the source ID, destination ID, and vnet number.
  */
 typedef std::vector<std::vector<std::vector<int>>> Matrix;
+typedef std::string PortDirection;
 
 struct LinkEntry
 {

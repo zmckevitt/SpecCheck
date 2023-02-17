@@ -44,7 +44,6 @@
 #include <vector>
 
 #include "arch/vecregs.hh"
-#include "cpu/o3/dyn_inst.hh"
 #include "cpu/reg_class.hh"
 #include "debug/Rename.hh"
 
@@ -54,7 +53,8 @@ namespace gem5
 namespace o3
 {
 
-SimpleRenameMap::SimpleRenameMap() : freeList(NULL)
+SimpleRenameMap::SimpleRenameMap()
+    : freeList(NULL), zeroReg(IntRegClass, 0)
 {
 }
 
@@ -65,8 +65,9 @@ SimpleRenameMap::init(const RegClass &reg_class, SimpleFreeList *_freeList)
     assert(freeList == NULL);
     assert(map.empty());
 
-    map.resize(reg_class.numRegs());
+    map.resize(reg_class.size());
     freeList = _freeList;
+    zeroReg = RegId(IntRegClass, reg_class.zeroReg());
 }
 
 SimpleRenameMap::RenameInfo
@@ -75,10 +76,10 @@ SimpleRenameMap::rename(const RegId& arch_reg)
     PhysRegIdPtr renamed_reg;
     // Record the current physical register that is renamed to the
     // requested architected register.
-    PhysRegIdPtr prev_reg = map[arch_reg.index()];
+    PhysRegIdPtr prev_reg = map[arch_reg.flatIndex()];
 
-    if (arch_reg.is(InvalidRegClass)) {
-        assert(prev_reg->is(InvalidRegClass));
+    if (arch_reg == zeroReg) {
+        assert(prev_reg->index() == zeroReg.index());
         renamed_reg = prev_reg;
     } else if (prev_reg->getNumPinnedWrites() > 0) {
         // Do not rename if the register is pinned
@@ -90,7 +91,7 @@ SimpleRenameMap::rename(const RegId& arch_reg)
         renamed_reg->decrNumPinnedWrites();
     } else {
         renamed_reg = freeList->getReg();
-        map[arch_reg.index()] = renamed_reg;
+        map[arch_reg.flatIndex()] = renamed_reg;
         renamed_reg->setNumPinnedWrites(arch_reg.getNumPinnedWrites());
         renamed_reg->setNumPinnedWritesToComplete(
             arch_reg.getNumPinnedWrites() + 1);
@@ -113,20 +114,12 @@ UnifiedRenameMap::init(const BaseISA::RegClasses &regClasses,
 {
     regFile = _regFile;
 
-    for (int i = 0; i < renameMaps.size(); i++)
-        renameMaps[i].init(regClasses.at(i), &(freeList->freeLists[i]));
-}
-
-bool
-UnifiedRenameMap::canRename(DynInstPtr inst) const
-{
-    for (int i = 0; i < renameMaps.size(); i++) {
-        if (inst->numDestRegs((RegClassType)i) >
-                renameMaps[i].numFreeEntries()) {
-            return false;
-        }
-    }
-    return true;
+    intMap.init(regClasses.at(IntRegClass), &(freeList->intList));
+    floatMap.init(regClasses.at(FloatRegClass), &(freeList->floatList));
+    vecMap.init(regClasses.at(VecRegClass), &(freeList->vecList));
+    vecElemMap.init(regClasses.at(VecElemClass), &(freeList->vecElemList));
+    predMap.init(regClasses.at(VecPredRegClass), &(freeList->predList));
+    ccMap.init(regClasses.at(CCRegClass), &(freeList->ccList));
 }
 
 } // namespace o3

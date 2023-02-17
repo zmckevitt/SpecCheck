@@ -97,14 +97,14 @@ TarmacTracerRecordV8::TraceRegEntryV8::updateInt(
 {
     // Do not trace pseudo register accesses: invalid
     // register entry.
-    if (regRelIdx > int_reg::NumArchRegs) {
+    if (regRelIdx > NUM_ARCH_INTREGS) {
         regValid = false;
         return;
     }
 
     TraceRegEntry::updateInt(tarmCtx, regRelIdx);
 
-    if ((regRelIdx != int_reg::Pc) || (regRelIdx != StackPointerReg) ||
+    if ((regRelIdx != PCReg) || (regRelIdx != StackPointerReg) ||
         (regRelIdx != FramePointerReg) || (regRelIdx != ReturnAddressReg)) {
 
         const auto* arm_inst = static_cast<const ArmStaticInst*>(
@@ -138,8 +138,8 @@ TarmacTracerRecordV8::TraceRegEntryV8::updateVec(
 )
 {
     auto thread = tarmCtx.thread;
-    ArmISA::VecRegContainer vec_container;
-    thread->getReg(RegId(regClass, regRelIdx), &vec_container);
+    const auto& vec_container = thread->readVecReg(
+        RegId(regClass, regRelIdx));
     auto vv = vec_container.as<VecElem>();
 
     regWidth = ArmStaticInst::getCurSveVecLenInBits(thread);
@@ -163,8 +163,8 @@ TarmacTracerRecordV8::TraceRegEntryV8::updatePred(
 )
 {
     auto thread = tarmCtx.thread;
-    ArmISA::VecPredRegContainer pred_container;
-    thread->getReg(RegId(regClass, regRelIdx), &pred_container);
+    const auto& pred_container = thread->readVecPredReg(
+        RegId(regClass, regRelIdx));
 
     // Predicate registers are always 1/8 the size of related vector
     // registers. (getCurSveVecLenInBits(thread) / 8)

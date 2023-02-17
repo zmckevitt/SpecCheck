@@ -54,18 +54,6 @@ SEWorkload::setSystem(System *sys)
 }
 
 void
-SEWorkload::serialize(CheckpointOut &cp) const
-{
-    memPools.serialize(cp);
-}
-
-void
-SEWorkload::unserialize(CheckpointIn &cp)
-{
-    memPools.unserialize(cp);
-}
-
-void
 SEWorkload::syscall(ThreadContext *tc)
 {
     tc->getProcessPtr()->syscall(tc);

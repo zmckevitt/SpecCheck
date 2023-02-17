@@ -217,9 +217,7 @@ class IdeDisk : public SimObject
 {
   protected:
     /** The IDE controller for this disk. */
-    IdeController *ctrl = nullptr;
-    /** The channel this disk is connected to. */
-    IdeController::Channel *channel = nullptr;
+    IdeController *ctrl;
     /** The image that contains the data of this disk. */
     DiskImage *image;
 
@@ -261,7 +259,7 @@ class IdeDisk : public SimObject
     /** Device ID (device0=0/device1=1) */
     int devID;
     /** Interrupt pending */
-    bool pendingInterrupt;
+    bool intrPending;
     /** DMA Aborted */
     bool dmaAborted;
 
@@ -296,11 +294,10 @@ class IdeDisk : public SimObject
      * @param c The IDE controller
      */
     void
-    setChannel(IdeController::Channel *_channel, Addr chunk_bytes)
+    setController(IdeController *c, Addr chunk_bytes)
     {
-        panic_if(channel, "Cannot change the channel once set!");
-        channel = _channel;
-        ctrl = channel->controller();
+        panic_if(ctrl, "Cannot change the controller once set!\n");
+        ctrl = c;
         chunkBytes = chunk_bytes;
     }
 
@@ -318,8 +315,8 @@ class IdeDisk : public SimObject
     void startCommand();
 
     // Interrupt management
-    void postInterrupt();
-    void clearInterrupt();
+    void intrPost();
+    void intrClear();
 
     // DMA stuff
     void doDmaTransfer();
@@ -328,13 +325,13 @@ class IdeDisk : public SimObject
     void doDmaDataRead();
 
     void doDmaRead();
-    ChunkGenerator *dmaReadCG = nullptr;
+    ChunkGenerator *dmaReadCG;
     EventFunctionWrapper dmaReadWaitEvent;
 
     void doDmaDataWrite();
 
     void doDmaWrite();
-    ChunkGenerator *dmaWriteCG = nullptr;
+    ChunkGenerator *dmaWriteCG;
     EventFunctionWrapper dmaWriteWaitEvent;
 
     void dmaPrdReadDone();
@@ -358,8 +355,7 @@ class IdeDisk : public SimObject
     bool isIENSet() { return nIENBit; }
     bool isDEVSelect();
 
-    void
-    setComplete()
+    void setComplete()
     {
         // clear out the status byte
         status = 0;
@@ -369,13 +365,10 @@ class IdeDisk : public SimObject
         status |= STATUS_SEEK_BIT;
     }
 
-    uint32_t
-    getLBABase()
+    uint32_t getLBABase()
     {
-        return ((cmdReg.head & 0xf) << 24) |
-               (cmdReg.cyl_high << 16) |
-               (cmdReg.cyl_low << 8) |
-               (cmdReg.sec_num);
+        return  (Addr)(((cmdReg.head & 0xf) << 24) | (cmdReg.cyl_high << 16) |
+                       (cmdReg.cyl_low << 8) | (cmdReg.sec_num));
     }
 
     inline Addr pciToDma(Addr pciAddr);

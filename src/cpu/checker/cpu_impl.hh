@@ -201,6 +201,9 @@ Checker<DynInstPtr>::verify(const DynInstPtr &completed_inst)
 
         Fault fault = NoFault;
 
+        // maintain $r0 semantics
+        thread->setIntReg(zeroReg, 0);
+
         // Check if any recent PC changes match up with anything we
         // expect to happen.  This is mostly to check if traps or
         // PC-based events have occurred in both the checker and CPU.
@@ -581,19 +584,20 @@ Checker<DynInstPtr>::copyResult(
     if (start_idx >= 0) {
         const RegId& idx = inst->destRegIdx(start_idx);
         switch (idx.classValue()) {
-          case InvalidRegClass:
-            break;
           case IntRegClass:
+            thread->setIntReg(idx.index(), mismatch_val.as<RegVal>());
+            break;
           case FloatRegClass:
-          case VecElemClass:
-          case CCRegClass:
-            thread->setReg(idx, mismatch_val.as<RegVal>());
+            thread->setFloatReg(idx.index(), mismatch_val.as<RegVal>());
             break;
           case VecRegClass:
-            {
-                auto val = mismatch_val.as<TheISA::VecRegContainer>();
-                thread->setReg(idx, &val);
-            }
+            thread->setVecReg(idx, mismatch_val.as<TheISA::VecRegContainer>());
+            break;
+          case VecElemClass:
+            thread->setVecElem(idx, mismatch_val.as<RegVal>());
+            break;
+          case CCRegClass:
+            thread->setCCReg(idx.index(), mismatch_val.as<RegVal>());
             break;
           case MiscRegClass:
             thread->setMiscReg(idx.index(), mismatch_val.as<RegVal>());
@@ -608,19 +612,20 @@ Checker<DynInstPtr>::copyResult(
         const RegId& idx = inst->destRegIdx(i);
         res = inst->popResult();
         switch (idx.classValue()) {
-          case InvalidRegClass:
-            break;
           case IntRegClass:
+            thread->setIntReg(idx.index(), res.as<RegVal>());
+            break;
           case FloatRegClass:
-          case VecElemClass:
-          case CCRegClass:
-            thread->setReg(idx, res.as<RegVal>());
+            thread->setFloatReg(idx.index(), res.as<RegVal>());
             break;
           case VecRegClass:
-            {
-                auto val = res.as<TheISA::VecRegContainer>();
-                thread->setReg(idx, &val);
-            }
+            thread->setVecReg(idx, res.as<TheISA::VecRegContainer>());
+            break;
+          case VecElemClass:
+            thread->setVecElem(idx, res.as<RegVal>());
+            break;
+          case CCRegClass:
+            thread->setCCReg(idx.index(), res.as<RegVal>());
             break;
           case MiscRegClass:
             // Try to get the proper misc register index for ARM here...

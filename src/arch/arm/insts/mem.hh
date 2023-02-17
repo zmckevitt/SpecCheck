@@ -98,20 +98,20 @@ class RfeOp : public MightBeMicro
         IncrementBefore
     };
   protected:
-    RegIndex base;
+    IntRegIndex base;
     AddrMode mode;
     bool wb;
-    RegIndex ura, urb, urc;
+    IntRegIndex ura, urb, urc;
     static const unsigned numMicroops = 3;
 
     StaticInstPtr *uops;
 
     RfeOp(const char *mnem, ExtMachInst _machInst, OpClass __opClass,
-          RegIndex _base, AddrMode _mode, bool _wb)
+          IntRegIndex _base, AddrMode _mode, bool _wb)
         : MightBeMicro(mnem, _machInst, __opClass),
           base(_base), mode(_mode), wb(_wb),
-          ura(int_reg::Ureg0), urb(int_reg::Ureg1),
-          urc(int_reg::Ureg2),
+          ura(INTREG_UREG0), urb(INTREG_UREG1),
+          urc(INTREG_UREG2),
           uops(NULL)
     {}
 
@@ -186,15 +186,15 @@ class Memory : public MightBeMicro
 
   protected:
 
-    RegIndex dest;
-    RegIndex base;
+    IntRegIndex dest;
+    IntRegIndex base;
     bool add;
     static const unsigned numMicroops = 3;
 
     StaticInstPtr *uops;
 
     Memory(const char *mnem, ExtMachInst _machInst, OpClass __opClass,
-           RegIndex _dest, RegIndex _base, bool _add)
+           IntRegIndex _dest, IntRegIndex _base, bool _add)
         : MightBeMicro(mnem, _machInst, __opClass),
           dest(_dest), base(_base), add(_add), uops(NULL)
     {}
@@ -232,7 +232,7 @@ class MemoryImm : public Memory
     int32_t imm;
 
     MemoryImm(const char *mnem, ExtMachInst _machInst, OpClass __opClass,
-              RegIndex _dest, RegIndex _base, bool _add, int32_t _imm)
+              IntRegIndex _dest, IntRegIndex _base, bool _add, int32_t _imm)
         : Memory(mnem, _machInst, __opClass, _dest, _base, _add), imm(_imm)
     {}
 
@@ -249,10 +249,10 @@ class MemoryImm : public Memory
 class MemoryExImm : public MemoryImm
 {
   protected:
-    RegIndex result;
+    IntRegIndex result;
 
     MemoryExImm(const char *mnem, ExtMachInst _machInst, OpClass __opClass,
-                RegIndex _result, RegIndex _dest, RegIndex _base,
+                IntRegIndex _result, IntRegIndex _dest, IntRegIndex _base,
                 bool _add, int32_t _imm)
         : MemoryImm(mnem, _machInst, __opClass, _dest, _base, _add, _imm),
                     result(_result)
@@ -271,11 +271,11 @@ class MemoryExImm : public MemoryImm
 class MemoryDImm : public MemoryImm
 {
   protected:
-    RegIndex dest2;
+    IntRegIndex dest2;
 
     MemoryDImm(const char *mnem, ExtMachInst _machInst, OpClass __opClass,
-              RegIndex _dest, RegIndex _dest2,
-              RegIndex _base, bool _add, int32_t _imm)
+              IntRegIndex _dest, IntRegIndex _dest2,
+              IntRegIndex _base, bool _add, int32_t _imm)
         : MemoryImm(mnem, _machInst, __opClass, _dest, _base, _add, _imm),
           dest2(_dest2)
     {}
@@ -292,11 +292,11 @@ class MemoryDImm : public MemoryImm
 class MemoryExDImm : public MemoryDImm
 {
   protected:
-    RegIndex result;
+    IntRegIndex result;
 
     MemoryExDImm(const char *mnem, ExtMachInst _machInst, OpClass __opClass,
-                 RegIndex _result, RegIndex _dest, RegIndex _dest2,
-                 RegIndex _base, bool _add, int32_t _imm)
+                 IntRegIndex _result, IntRegIndex _dest, IntRegIndex _dest2,
+                 IntRegIndex _base, bool _add, int32_t _imm)
         : MemoryDImm(mnem, _machInst, __opClass, _dest, _dest2,
                      _base, _add, _imm), result(_result)
     {}
@@ -316,12 +316,12 @@ class MemoryReg : public Memory
   protected:
     int32_t shiftAmt;
     ArmShiftType shiftType;
-    RegIndex index;
+    IntRegIndex index;
 
     MemoryReg(const char *mnem, ExtMachInst _machInst, OpClass __opClass,
-              RegIndex _dest, RegIndex _base, bool _add,
+              IntRegIndex _dest, IntRegIndex _base, bool _add,
               int32_t _shiftAmt, ArmShiftType _shiftType,
-              RegIndex _index)
+              IntRegIndex _index)
         : Memory(mnem, _machInst, __opClass, _dest, _base, _add),
           shiftAmt(_shiftAmt), shiftType(_shiftType), index(_index)
     {}
@@ -332,13 +332,13 @@ class MemoryReg : public Memory
 class MemoryDReg : public MemoryReg
 {
   protected:
-    RegIndex dest2;
+    IntRegIndex dest2;
 
     MemoryDReg(const char *mnem, ExtMachInst _machInst, OpClass __opClass,
-               RegIndex _dest, RegIndex _dest2,
-               RegIndex _base, bool _add,
+               IntRegIndex _dest, IntRegIndex _dest2,
+               IntRegIndex _base, bool _add,
                int32_t _shiftAmt, ArmShiftType _shiftType,
-               RegIndex _index)
+               IntRegIndex _index)
         : MemoryReg(mnem, _machInst, __opClass, _dest, _base, _add,
                     _shiftAmt, _shiftType, _index),
           dest2(_dest2)
@@ -358,38 +358,38 @@ class MemoryOffset : public Base
 {
   protected:
     MemoryOffset(const char *mnem, ExtMachInst _machInst,
-                 OpClass __opClass, RegIndex _dest, RegIndex _base,
+                 OpClass __opClass, IntRegIndex _dest, IntRegIndex _base,
                  bool _add, int32_t _imm)
         : Base(mnem, _machInst, __opClass, _dest, _base, _add, _imm)
     {}
 
     MemoryOffset(const char *mnem, ExtMachInst _machInst,
-                 OpClass __opClass, RegIndex _dest, RegIndex _base,
+                 OpClass __opClass, IntRegIndex _dest, IntRegIndex _base,
                  bool _add, int32_t _shiftAmt, ArmShiftType _shiftType,
-                 RegIndex _index)
+                 IntRegIndex _index)
         : Base(mnem, _machInst, __opClass, _dest, _base, _add,
                 _shiftAmt, _shiftType, _index)
     {}
 
     MemoryOffset(const char *mnem, ExtMachInst _machInst,
-                 OpClass __opClass, RegIndex _dest, RegIndex _dest2,
-                 RegIndex _base, bool _add, int32_t _imm)
+                 OpClass __opClass, IntRegIndex _dest, IntRegIndex _dest2,
+                 IntRegIndex _base, bool _add, int32_t _imm)
         : Base(mnem, _machInst, __opClass, _dest, _dest2, _base, _add, _imm)
     {}
 
     MemoryOffset(const char *mnem, ExtMachInst _machInst,
-                 OpClass __opClass, RegIndex _result,
-                 RegIndex _dest, RegIndex _dest2,
-                 RegIndex _base, bool _add, int32_t _imm)
+                 OpClass __opClass, IntRegIndex _result,
+                 IntRegIndex _dest, IntRegIndex _dest2,
+                 IntRegIndex _base, bool _add, int32_t _imm)
         : Base(mnem, _machInst, __opClass, _result,
                 _dest, _dest2, _base, _add, _imm)
     {}
 
     MemoryOffset(const char *mnem, ExtMachInst _machInst,
-                 OpClass __opClass, RegIndex _dest, RegIndex _dest2,
-                 RegIndex _base, bool _add,
+                 OpClass __opClass, IntRegIndex _dest, IntRegIndex _dest2,
+                 IntRegIndex _base, bool _add,
                  int32_t _shiftAmt, ArmShiftType _shiftType,
-                 RegIndex _index)
+                 IntRegIndex _index)
         : Base(mnem, _machInst, __opClass, _dest, _dest2, _base, _add,
                 _shiftAmt, _shiftType, _index)
     {}
@@ -409,38 +409,38 @@ class MemoryPreIndex : public Base
 {
   protected:
     MemoryPreIndex(const char *mnem, ExtMachInst _machInst,
-                   OpClass __opClass, RegIndex _dest, RegIndex _base,
+                   OpClass __opClass, IntRegIndex _dest, IntRegIndex _base,
                    bool _add, int32_t _imm)
         : Base(mnem, _machInst, __opClass, _dest, _base, _add, _imm)
     {}
 
     MemoryPreIndex(const char *mnem, ExtMachInst _machInst,
-                   OpClass __opClass, RegIndex _dest, RegIndex _base,
+                   OpClass __opClass, IntRegIndex _dest, IntRegIndex _base,
                    bool _add, int32_t _shiftAmt, ArmShiftType _shiftType,
-                   RegIndex _index)
+                   IntRegIndex _index)
         : Base(mnem, _machInst, __opClass, _dest, _base, _add,
                 _shiftAmt, _shiftType, _index)
     {}
 
     MemoryPreIndex(const char *mnem, ExtMachInst _machInst,
-                   OpClass __opClass, RegIndex _dest, RegIndex _dest2,
-                   RegIndex _base, bool _add, int32_t _imm)
+                   OpClass __opClass, IntRegIndex _dest, IntRegIndex _dest2,
+                   IntRegIndex _base, bool _add, int32_t _imm)
         : Base(mnem, _machInst, __opClass, _dest, _dest2, _base, _add, _imm)
     {}
 
     MemoryPreIndex(const char *mnem, ExtMachInst _machInst,
-                   OpClass __opClass, RegIndex _result,
-                   RegIndex _dest, RegIndex _dest2,
-                   RegIndex _base, bool _add, int32_t _imm)
+                   OpClass __opClass, IntRegIndex _result,
+                   IntRegIndex _dest, IntRegIndex _dest2,
+                   IntRegIndex _base, bool _add, int32_t _imm)
         : Base(mnem, _machInst, __opClass, _result,
                 _dest, _dest2, _base, _add, _imm)
     {}
 
     MemoryPreIndex(const char *mnem, ExtMachInst _machInst,
-                   OpClass __opClass, RegIndex _dest, RegIndex _dest2,
-                   RegIndex _base, bool _add,
+                   OpClass __opClass, IntRegIndex _dest, IntRegIndex _dest2,
+                   IntRegIndex _base, bool _add,
                    int32_t _shiftAmt, ArmShiftType _shiftType,
-                   RegIndex _index)
+                   IntRegIndex _index)
         : Base(mnem, _machInst, __opClass, _dest, _dest2, _base, _add,
                 _shiftAmt, _shiftType, _index)
     {}
@@ -460,38 +460,38 @@ class MemoryPostIndex : public Base
 {
   protected:
     MemoryPostIndex(const char *mnem, ExtMachInst _machInst,
-                    OpClass __opClass, RegIndex _dest, RegIndex _base,
+                    OpClass __opClass, IntRegIndex _dest, IntRegIndex _base,
                     bool _add, int32_t _imm)
         : Base(mnem, _machInst, __opClass, _dest, _base, _add, _imm)
     {}
 
     MemoryPostIndex(const char *mnem, ExtMachInst _machInst,
-                    OpClass __opClass, RegIndex _dest, RegIndex _base,
+                    OpClass __opClass, IntRegIndex _dest, IntRegIndex _base,
                     bool _add, int32_t _shiftAmt, ArmShiftType _shiftType,
-                    RegIndex _index)
+                    IntRegIndex _index)
         : Base(mnem, _machInst, __opClass, _dest, _base, _add,
                 _shiftAmt, _shiftType, _index)
     {}
 
     MemoryPostIndex(const char *mnem, ExtMachInst _machInst,
-                    OpClass __opClass, RegIndex _dest, RegIndex _dest2,
-                    RegIndex _base, bool _add, int32_t _imm)
+                    OpClass __opClass, IntRegIndex _dest, IntRegIndex _dest2,
+                    IntRegIndex _base, bool _add, int32_t _imm)
         : Base(mnem, _machInst, __opClass, _dest, _dest2, _base, _add, _imm)
     {}
 
     MemoryPostIndex(const char *mnem, ExtMachInst _machInst,
-                    OpClass __opClass, RegIndex _result,
-                    RegIndex _dest, RegIndex _dest2,
-                    RegIndex _base, bool _add, int32_t _imm)
+                    OpClass __opClass, IntRegIndex _result,
+                    IntRegIndex _dest, IntRegIndex _dest2,
+                    IntRegIndex _base, bool _add, int32_t _imm)
         : Base(mnem, _machInst, __opClass, _result,
                 _dest, _dest2, _base, _add, _imm)
     {}
 
     MemoryPostIndex(const char *mnem, ExtMachInst _machInst,
-                    OpClass __opClass, RegIndex _dest, RegIndex _dest2,
-                    RegIndex _base, bool _add,
+                    OpClass __opClass, IntRegIndex _dest, IntRegIndex _dest2,
+                    IntRegIndex _base, bool _add,
                     int32_t _shiftAmt, ArmShiftType _shiftType,
-                    RegIndex _index)
+                    IntRegIndex _index)
         : Base(mnem, _machInst, __opClass, _dest, _dest2, _base, _add,
                 _shiftAmt, _shiftType, _index)
     {}

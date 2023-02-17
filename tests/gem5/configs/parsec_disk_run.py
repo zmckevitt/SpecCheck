@@ -43,10 +43,7 @@ from gem5.components.memory import SingleChannelDDR3_1600
 from gem5.components.processors.simple_switchable_processor import (
     SimpleSwitchableProcessor,
 )
-from gem5.components.processors.cpu_types import(
-    get_cpu_types_str_set,
-    get_cpu_type_from_str,
-)
+from gem5.components.processors.cpu_types import CPUTypes
 from gem5.isas import ISA
 from gem5.runtime import get_runtime_isa, get_runtime_coherence_protocol
 from gem5.simulate.simulator import Simulator
@@ -78,7 +75,7 @@ parser.add_argument(
     "-b",
     "--boot-cpu",
     type=str,
-    choices=get_cpu_types_str_set(),
+    choices=("kvm", "timing", "atomic", "o3"),
     required=False,
     help="The CPU type to run before and after the ROI. If not specified will "
     "be equal to that of the CPU type used in the ROI.",
@@ -88,7 +85,7 @@ parser.add_argument(
     "-c",
     "--cpu",
     type=str,
-    choices=get_cpu_types_str_set(),
+    choices=("kvm", "timing", "atomic", "o3"),
     required=True,
     help="The CPU type used in the ROI.",
 )
@@ -177,9 +174,23 @@ elif args.mem_system == "mesi_two_level":
 # Setup the memory system.
 memory = SingleChannelDDR3_1600(size="3GB")
 
-roi_type = get_cpu_type_from_str(args.cpu)
+
+def input_to_cputype(input: str) -> CPUTypes:
+    if input == "kvm":
+        return CPUTypes.KVM
+    elif input == "timing":
+        return CPUTypes.TIMING
+    elif input == "atomic":
+        return CPUTypes.ATOMIC
+    elif input == "o3":
+        return CPUTypes.O3
+    else:
+        raise NotADirectoryError("Unknown CPU type '{}'.".format(input))
+
+
+roi_type = input_to_cputype(args.cpu)
 if args.boot_cpu != None:
-    boot_type = get_cpu_type_from_str(args.boot_cpu)
+    boot_type = input_to_cputype(args.boot_cpu)
 else:
     boot_type = roi_type
 
@@ -187,7 +198,6 @@ else:
 processor = SimpleSwitchableProcessor(
     starting_core_type=boot_type,
     switch_core_type=roi_type,
-    isa=ISA.X86,
     num_cores=args.num_cpus,
 )
 

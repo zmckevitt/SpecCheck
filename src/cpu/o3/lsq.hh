@@ -63,7 +63,7 @@
 namespace gem5
 {
 
-struct BaseO3CPUParams;
+struct O3CPUParams;
 
 namespace o3
 {
@@ -257,7 +257,6 @@ class LSQ
         std::vector<bool> _byteEnable;
         uint32_t _numOutstandingPackets;
         AtomicOpFunctorPtr _amo_op;
-        bool _hasStaleTranslation;
 
       protected:
         LSQUnit* lsqUnit() { return &_port; }
@@ -265,8 +264,7 @@ class LSQ
         LSQRequest(LSQUnit* port, const DynInstPtr& inst, bool isLoad,
                 const Addr& addr, const uint32_t& size,
                 const Request::Flags& flags_, PacketDataPtr data=nullptr,
-                uint64_t* res=nullptr, AtomicOpFunctorPtr amo_op=nullptr,
-                bool stale_translation=false);
+                uint64_t* res=nullptr, AtomicOpFunctorPtr amo_op=nullptr);
 
         bool
         isLoad() const
@@ -332,10 +330,6 @@ class LSQ
         }
 
         const DynInstPtr& instruction() { return _inst; }
-
-        bool hasStaleTranslation() const { return _hasStaleTranslation; }
-
-        virtual void markAsStaleTranslation() = 0;
 
         /** Set up virtual request.
          * For a previously allocated Request objects.
@@ -577,7 +571,6 @@ class LSQ
                        std::move(amo_op)) {}
 
         virtual ~SingleDataRequest() {}
-        virtual void markAsStaleTranslation();
         virtual void initiateTranslation();
         virtual void finish(const Fault &fault, const RequestPtr &req,
                 gem5::ThreadContext* tc, BaseMMU::Mode mode);
@@ -590,25 +583,19 @@ class LSQ
         virtual std::string name() const { return "SingleDataRequest"; }
     };
 
-    // This class extends SingleDataRequest for the purpose
-    // of allowing special requests (eg Hardware transactional memory, TLB
-    // shootdowns) to bypass irrelevant system elements like translation &
-    // squashing.
-    class UnsquashableDirectRequest : public SingleDataRequest
+    // hardware transactional memory
+    // This class extends SingleDataRequest for the sole purpose
+    // of encapsulating hardware transactional memory command requests
+    class HtmCmdRequest : public SingleDataRequest
     {
       public:
-        UnsquashableDirectRequest(LSQUnit* port, const DynInstPtr& inst,
+        HtmCmdRequest(LSQUnit* port, const DynInstPtr& inst,
                 const Request::Flags& flags_);
-        inline virtual ~UnsquashableDirectRequest() {}
+        virtual ~HtmCmdRequest() {}
         virtual void initiateTranslation();
-        virtual void markAsStaleTranslation();
         virtual void finish(const Fault &fault, const RequestPtr &req,
                 gem5::ThreadContext* tc, BaseMMU::Mode mode);
-        virtual std::string
-        name() const
-        {
-            return "UnsquashableDirectRequest";
-        }
+        virtual std::string name() const { return "HtmCmdRequest"; }
     };
 
     class SplitDataRequest : public LSQRequest
@@ -643,7 +630,6 @@ class LSQ
                 _mainPacket = nullptr;
             }
         }
-        virtual void markAsStaleTranslation();
         virtual void finish(const Fault &fault, const RequestPtr &req,
                 gem5::ThreadContext* tc, BaseMMU::Mode mode);
         virtual bool recvTimingResp(PacketPtr pkt);
@@ -661,7 +647,7 @@ class LSQ
     };
 
     /** Constructs an LSQ with the given parameters. */
-    LSQ(CPU *cpu_ptr, IEW *iew_ptr, const BaseO3CPUParams &params);
+    LSQ(CPU *cpu_ptr, IEW *iew_ptr, const O3CPUParams &params);
 
     /** Returns the name of the LSQ. */
     std::string name() const;
@@ -841,17 +827,12 @@ class LSQ
     /** Executes a read operation, using the load specified at the load
      * index.
      */
-    Fault read(LSQRequest* request, ssize_t load_idx);
+    Fault read(LSQRequest* request, int load_idx);
 
     /** Executes a store operation, using the store specified at the store
      * index.
      */
-    Fault write(LSQRequest* request, uint8_t *data, ssize_t store_idx);
-
-    /** Checks if queues have any marked operations left,
-     * and sends the appropriate Sync Completion message if not.
-     */
-    void checkStaleTranslations();
+    Fault write(LSQRequest* request, uint8_t *data, int store_idx);
 
     /**
      * Retry the previous send that failed.
@@ -903,10 +884,6 @@ class LSQ
     /** The number of used cache ports in this cycle by loads. */
     int usedLoadPorts;
 
-    /** If the LSQ is currently waiting for stale translations */
-    bool waitingForStaleTranslation;
-    /** The ID if the transaction that made translations stale */
-    Addr staleTranslationWaitTxnId;
 
     /** The LSQ policy for SMT mode. */
     SMTQueuePolicy lsqPolicy;

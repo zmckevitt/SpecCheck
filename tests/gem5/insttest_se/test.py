@@ -62,7 +62,6 @@ for isa in test_progs:
                     cpu,
                     "--resource-directory",
                     resource_path,
-                    "sparc",
                 ],
                 valid_isas=(isa,),
                 length=constants.long_tag,

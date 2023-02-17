@@ -9,16 +9,12 @@ dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 gem5_root="${dir}/.."
 build_dir="${gem5_root}/build"
 
-# The per-container Docker memory limit.
-docker_mem_limit="18g"
-
 # All Docker images in the gem5 testing GCR which we want to compile with.
 images=("gcc-version-11"
         "gcc-version-10"
         "gcc-version-9"
         "gcc-version-8"
         "gcc-version-7"
-        "clang-version-12"
         "clang-version-11"
         "clang-version-10"
         "clang-version-9"
@@ -35,7 +31,7 @@ images=("gcc-version-11"
 # A subset of the above list: these images will build against every target,
 # ignoring builds_per_compiler.
 comprehensive=("gcc-version-11"
-               "clang-version-12")
+               "clang-version-11")
 
 # All build targets in build_opt/ which we want to build using each image.
 builds=("ARM"
@@ -103,7 +99,7 @@ for compiler in ${images[@]}; do
     # targets for this test
     build_indices=(${build_permutation[@]:0:$builds_count})
 
-    repo_name="${base_url}/${compiler}:v22-0"
+    repo_name="${base_url}/${compiler}:v21-2"
 
     # Grab compiler image
     docker pull $repo_name >/dev/null
@@ -128,8 +124,7 @@ for compiler in ${images[@]}; do
             # Build with container
             {
                 docker run --rm -v "${gem5_root}":"/gem5" -u $UID:$GID \
-                    -w /gem5 --memory="${docker_mem_limit}" $repo_name \
-                    /usr/bin/env python3 /usr/bin/scons \
+                    -w /gem5 $repo_name /usr/bin/env python3 /usr/bin/scons \
                     "${build_out}" "${build_args}"
             }>"${build_stdout}" 2>"${build_stderr}"
             result=$?

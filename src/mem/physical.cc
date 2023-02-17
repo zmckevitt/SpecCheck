@@ -50,13 +50,11 @@
 #include <iostream>
 #include <string>
 
-#include "base/intmath.hh"
 #include "base/trace.hh"
 #include "debug/AddrRanges.hh"
 #include "debug/Checkpoint.hh"
 #include "mem/abstract_mem.hh"
 #include "sim/serialize.hh"
-#include "sim/sim_exit.hh"
 
 /**
  * On Linux, MAP_NORESERVE allow us to simulate a very large memory
@@ -79,17 +77,10 @@ namespace memory
 PhysicalMemory::PhysicalMemory(const std::string& _name,
                                const std::vector<AbstractMemory*>& _memories,
                                bool mmap_using_noreserve,
-                               const std::string& shared_backstore,
-                               bool auto_unlink_shared_backstore) :
+                               const std::string& shared_backstore) :
     _name(_name), size(0), mmapUsingNoReserve(mmap_using_noreserve),
-    sharedBackstore(shared_backstore), sharedBackstoreSize(0),
-    pageSize(sysconf(_SC_PAGE_SIZE))
+    sharedBackstore(shared_backstore)
 {
-    // Register cleanup callback if requested.
-    if (auto_unlink_shared_backstore && !sharedBackstore.empty()) {
-        registerExitCallback([=]() { shm_unlink(shared_backstore.c_str()); });
-    }
-
     if (mmap_using_noreserve)
         warn("Not reserving swap space. May cause SIGSEGV on actual usage\n");
 
@@ -210,24 +201,17 @@ PhysicalMemory::createBackingStore(
 
     int shm_fd;
     int map_flags;
-    off_t map_offset;
 
     if (sharedBackstore.empty()) {
         shm_fd = -1;
         map_flags =  MAP_ANON | MAP_PRIVATE;
-        map_offset = 0;
     } else {
-        // Newly create backstore will be located after previous one.
-        map_offset = sharedBackstoreSize;
-        // mmap requires the offset to be multiple of page, so we need to
-        // upscale the range size.
-        sharedBackstoreSize += roundUp(range.size(), pageSize);
-        DPRINTF(AddrRanges, "Sharing backing store as %s at offset %llu\n",
-                sharedBackstore.c_str(), (uint64_t)map_offset);
+        DPRINTF(AddrRanges, "Sharing backing store as %s\n",
+                sharedBackstore.c_str());
         shm_fd = shm_open(sharedBackstore.c_str(), O_CREAT | O_RDWR, 0666);
         if (shm_fd == -1)
                panic("Shared memory failed");
-        if (ftruncate(shm_fd, sharedBackstoreSize))
+        if (ftruncate(shm_fd, range.size()))
                panic("Setting size of shared memory failed");
         map_flags = MAP_SHARED;
     }
@@ -240,7 +224,7 @@ PhysicalMemory::createBackingStore(
 
     uint8_t* pmem = (uint8_t*) mmap(NULL, range.size(),
                                     PROT_READ | PROT_WRITE,
-                                    map_flags, shm_fd, map_offset);
+                                    map_flags, shm_fd, 0);
 
     if (pmem == (uint8_t*) MAP_FAILED) {
         perror("mmap");
@@ -251,8 +235,7 @@ PhysicalMemory::createBackingStore(
     // remember this backing store so we can checkpoint it and unmap
     // it appropriately
     backingStore.emplace_back(range, pmem,
-                              conf_table_reported, in_addr_map, kvm_map,
-                              shm_fd, map_offset);
+                              conf_table_reported, in_addr_map, kvm_map);
 
     // point the memories to their backing store
     for (const auto& m : _memories) {

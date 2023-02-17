@@ -29,7 +29,6 @@
 #ifndef __DEV_X86_CMOS_HH__
 #define __DEV_X86_CMOS_HH__
 
-#include "base/bitunion.hh"
 #include "dev/intpin.hh"
 #include "dev/io_device.hh"
 #include "dev/mc146818.hh"
@@ -46,12 +45,7 @@ class Cmos : public BasicPioDevice
   protected:
     Tick latency;
 
-    BitUnion8(CmosAddress)
-        Bitfield<6, 0> regNum;
-        Bitfield<7> nmiMask;
-    EndBitUnion(CmosAddress)
-
-    CmosAddress address;
+    uint8_t address;
 
     static const int numRegs = 128;
 

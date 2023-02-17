@@ -36,6 +36,7 @@ Characteristics
 import m5
 from m5.objects import Root
 
+from gem5.runtime import get_runtime_isa
 from gem5.components.boards.experimental.lupv_board import LupvBoard
 from gem5.components.memory.single_channel import SingleChannelDDR3_1600
 from gem5.components.processors.simple_processor import SimpleProcessor
@@ -82,11 +83,11 @@ memory = SingleChannelDDR3_1600(size="128MB")
 # Setup a single core Processor.
 if args.cpu_type == "atomic":
     processor = SimpleProcessor(
-        cpu_type=CPUTypes.ATOMIC, num_cores=args.num_cpus, isa=ISA.RISCV
+        cpu_type=CPUTypes.ATOMIC, num_cores=args.num_cpus
     )
 elif args.cpu_type == "timing":
     processor = SimpleProcessor(
-        cpu_type=CPUTypes.TIMING, num_cores=args.num_cpus, isa=ISA.RISCV
+        cpu_type=CPUTypes.TIMING, num_cores=args.num_cpus
     )
 
 # Setup the board.
@@ -105,7 +106,7 @@ board.set_kernel_disk_workload(
 
 
 # Begin running of the simulation.
-print("Running with ISA: " + processor.get_isa().name)
+print("Running with ISA: " + get_runtime_isa().name)
 print()
 root = Root(full_system=True, system=board)
 m5.instantiate()

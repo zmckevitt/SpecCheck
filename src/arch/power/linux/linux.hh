@@ -224,10 +224,10 @@ class PowerLinux : public Linux, public OpenFlagTable<PowerLinux>
         ctc->getIsaPtr()->copyRegsFrom(ptc);
 
         if (flags & TGT_CLONE_SETTLS)
-            ctc->setReg(PowerISA::ThreadPointerReg, tls);
+            ctc->setIntReg(PowerISA::ThreadPointerReg, tls);
 
         if (stack)
-            ctc->setReg(PowerISA::StackPointerReg, stack);
+            ctc->setIntReg(PowerISA::StackPointerReg, stack);
     }
 };
 

@@ -35,6 +35,10 @@
 #include "gtest/gtest.h"
 #include "src/gtest-internal-inl.h"
 
+namespace testing {
+GTEST_DECLARE_string_(filter);
+}
+
 namespace {
 
 enum FailureType {
@@ -170,7 +174,7 @@ int main(int argc, char **argv) {
 
   // Verifies that RUN_ALL_TESTS() doesn't do global set-up or
   // tear-down when there is no test to run.
-  GTEST_FLAG_SET(filter, "-*");
+  testing::GTEST_FLAG(filter) = "-*";
   Check(RunAllTests(env, NO_FAILURE) == 0,
         "RUN_ALL_TESTS() should return zero, as there is no test to run.");
   Check(!env->set_up_was_run(),

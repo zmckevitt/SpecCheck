@@ -47,7 +47,7 @@
 namespace gem5
 {
 
-MinorCPU::MinorCPU(const BaseMinorCPUParams &params) :
+MinorCPU::MinorCPU(const MinorCPUParams &params) :
     BaseCPU(params),
     threadPolicy(params.threadPolicy),
     stats(this)

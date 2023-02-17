@@ -287,10 +287,10 @@ class VstSingleOp64 : public PredMacroOp
 class MicroSetPCCPSR : public MicroOp
 {
     protected:
-    RegIndex ura, urb, urc;
+    IntRegIndex ura, urb, urc;
 
     MicroSetPCCPSR(const char *mnem, ExtMachInst machInst, OpClass __opClass,
-                   RegIndex _ura, RegIndex _urb, RegIndex _urc)
+                   IntRegIndex _ura, IntRegIndex _urb, IntRegIndex _urc)
         : MicroOp(mnem, machInst, __opClass),
           ura(_ura), urb(_urb), urc(_urc)
     {
@@ -463,7 +463,7 @@ class MacroMemOp : public PredMacroOp
 {
   protected:
     MacroMemOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
-               RegIndex rn, bool index, bool up, bool user,
+               IntRegIndex rn, bool index, bool up, bool user,
                bool writeback, bool load, uint32_t reglist);
 };
 
@@ -484,43 +484,43 @@ class PairMemOp : public PredMacroOp
     PairMemOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
               uint32_t size, bool fp, bool load, bool noAlloc, bool signExt,
               bool exclusive, bool acrel, int64_t imm, AddrMode mode,
-              RegIndex rn, RegIndex rt, RegIndex rt2);
+              IntRegIndex rn, IntRegIndex rt, IntRegIndex rt2);
 };
 
 class BigFpMemImmOp : public PredMacroOp
 {
   protected:
     BigFpMemImmOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
-                  bool load, RegIndex dest, RegIndex base, int64_t imm);
+                  bool load, IntRegIndex dest, IntRegIndex base, int64_t imm);
 };
 
 class BigFpMemPostOp : public PredMacroOp
 {
   protected:
     BigFpMemPostOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
-                   bool load, RegIndex dest, RegIndex base, int64_t imm);
+                   bool load, IntRegIndex dest, IntRegIndex base, int64_t imm);
 };
 
 class BigFpMemPreOp : public PredMacroOp
 {
   protected:
     BigFpMemPreOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
-                  bool load, RegIndex dest, RegIndex base, int64_t imm);
+                  bool load, IntRegIndex dest, IntRegIndex base, int64_t imm);
 };
 
 class BigFpMemRegOp : public PredMacroOp
 {
   protected:
     BigFpMemRegOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
-                  bool load, RegIndex dest, RegIndex base,
-                  RegIndex offset, ArmExtendType type, int64_t imm);
+                  bool load, IntRegIndex dest, IntRegIndex base,
+                  IntRegIndex offset, ArmExtendType type, int64_t imm);
 };
 
 class BigFpMemLitOp : public PredMacroOp
 {
   protected:
     BigFpMemLitOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
-                  RegIndex dest, int64_t imm);
+                  IntRegIndex dest, int64_t imm);
 };
 
 /**
@@ -570,7 +570,7 @@ class MacroVFPMemOp : public PredMacroOp
 {
   protected:
     MacroVFPMemOp(const char *mnem, ExtMachInst machInst, OpClass __opClass,
-                  RegIndex rn, RegIndex vd, bool single, bool up,
+                  IntRegIndex rn, RegIndex vd, bool single, bool up,
                   bool writeback, bool load, uint32_t offset);
 };
 

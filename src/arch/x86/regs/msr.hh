@@ -40,7 +40,7 @@ namespace gem5
 namespace X86ISA
 {
 
-typedef std::unordered_map<Addr, RegIndex> MsrMap;
+typedef std::unordered_map<Addr, MiscRegIndex> MsrMap;
 
 /**
  * Map between MSR addresses and their corresponding misc registers.
@@ -62,7 +62,7 @@ extern const MsrMap msrMap;
  * @param addr MSR address
  * @return True if the MSR was found, false otherwise.
  */
-bool msrAddrToIndex(RegIndex &regNum, Addr addr);
+bool msrAddrToIndex(MiscRegIndex &regNum, Addr addr);
 
 } // namespace X86ISA
 } // namespace gem5

@@ -56,7 +56,6 @@
 #include "arch/x86/regs/apic.hh"
 #include "base/bitfield.hh"
 #include "cpu/thread_context.hh"
-#include "dev/intpin.hh"
 #include "dev/io_device.hh"
 #include "dev/x86/intdev.hh"
 #include "params/X86LocalApic.hh"
@@ -78,11 +77,11 @@ ApicRegIndex decodeAddr(Addr paddr);
 class Interrupts : public BaseInterrupts
 {
   protected:
-    System *sys = nullptr;
+    System *sys;
     ClockDomain &clockDomain;
 
     // Storage for the APIC registers
-    uint32_t regs[NUM_APIC_REGS] = {};
+    uint32_t regs[NUM_APIC_REGS];
 
     BitUnion32(LVTEntry)
         Bitfield<7, 0> vector;
@@ -105,29 +104,29 @@ class Interrupts : public BaseInterrupts
      * A set of variables to keep track of interrupts that don't go through
      * the IRR.
      */
-    bool pendingSmi = false;
-    uint8_t smiVector = 0;
-    bool pendingNmi = false;
-    uint8_t nmiVector = 0;
-    bool pendingExtInt = false;
-    uint8_t extIntVector = 0;
-    bool pendingInit = false;
-    uint8_t initVector = 0;
-    bool pendingStartup = false;
-    uint8_t startupVector = 0;
-    bool startedUp = false;
+    bool pendingSmi;
+    uint8_t smiVector;
+    bool pendingNmi;
+    uint8_t nmiVector;
+    bool pendingExtInt;
+    uint8_t extIntVector;
+    bool pendingInit;
+    uint8_t initVector;
+    bool pendingStartup;
+    uint8_t startupVector;
+    bool startedUp;
 
     // This is a quick check whether any of the above (except ExtInt) are set.
-    bool pendingUnmaskableInt = false;
+    bool pendingUnmaskableInt;
 
     // A count of how many IPIs are in flight.
-    int pendingIPIs = 0;
+    int pendingIPIs;
 
     /*
      * IRR and ISR maintenance.
      */
-    uint8_t IRRV = 0;
-    uint8_t ISRV = 0;
+    uint8_t IRRV;
+    uint8_t ISRV;
 
     int
     findRegArrayMSB(ApicRegIndex base)
@@ -175,20 +174,16 @@ class Interrupts : public BaseInterrupts
 
     void requestInterrupt(uint8_t vector, uint8_t deliveryMode, bool level);
 
-    int initialApicId = 0;
+    int initialApicId;
 
-    // Ports for interrupt messages.
+    // Ports for interrupts.
     IntResponsePort<Interrupts> intResponsePort;
     IntRequestPort<Interrupts> intRequestPort;
-
-    // Pins for wired interrupts.
-    IntSinkPin<Interrupts> lint0Pin;
-    IntSinkPin<Interrupts> lint1Pin;
 
     // Port for memory mapped register accesses.
     PioPort<Interrupts> pioPort;
 
-    Tick pioDelay = 0;
+    Tick pioDelay;
     Addr pioAddr = MaxAddr;
 
   public:
@@ -227,12 +222,8 @@ class Interrupts : public BaseInterrupts
     AddrRangeList getAddrRanges() const;
     AddrRangeList getIntAddrRange() const;
 
-    void raiseInterruptPin(int number);
-    void lowerInterruptPin(int number);
-
-    Port &
-    getPort(const std::string &if_name,
-            PortID idx=InvalidPortID) override
+    Port &getPort(const std::string &if_name,
+                  PortID idx=InvalidPortID) override
     {
         if (if_name == "int_requestor") {
             return intRequestPort;
@@ -240,13 +231,8 @@ class Interrupts : public BaseInterrupts
             return intResponsePort;
         } else if (if_name == "pio") {
             return pioPort;
-        } else if (if_name == "lint0") {
-            return lint0Pin;
-        } else if (if_name == "lint1") {
-            return lint1Pin;
-        } else {
-            return SimObject::getPort(if_name, idx);
         }
+        return SimObject::getPort(if_name, idx);
     }
 
     /*

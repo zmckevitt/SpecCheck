@@ -68,30 +68,17 @@ gem5_verify_config(
 )
 
 null_tests = [
-    ('garnet_synth_traffic', None, ['--sim-cycles', '5000000']),
-    ('memcheck', None, ['--maxtick', '2000000000', '--prefetchers']),
-    ('ruby_mem_test-garnet', 'ruby_mem_test',
-        ['--abs-max-tick', '20000000', '--functional', '10', \
-         '--network=garnet']),
-    ('ruby_mem_test-simple', 'ruby_mem_test',
-        ['--abs-max-tick', '20000000', '--functional', '10', \
-         '--network=simple']),
-    ('ruby_mem_test-simple-extra', 'ruby_mem_test',
-        ['--abs-max-tick', '20000000', '--functional', '10', \
-         '--network=simple', '--simple-physical-channels']),
-    ('ruby_mem_test-simple-extra-multicore', 'ruby_mem_test',
-        ['--abs-max-tick', '20000000', '--functional', '10', \
-         '--network=simple', '--simple-physical-channels',
-         '--num-cpus=4']),
-    ('ruby_random_test', None, ['--maxloads', '5000']),
-    ('ruby_direct_test', None, ['--requests', '50000']),
+    ('garnet_synth_traffic', ['--sim-cycles', '5000000']),
+    ('memcheck', ['--maxtick', '2000000000', '--prefetchers']),
+    ('ruby_mem_test', ['--abs-max-tick', '20000000',
+        '--functional', '10']),
+    ('ruby_random_test', ['--maxloads', '5000']),
+    ('ruby_direct_test', ['--requests', '50000']),
 ]
 
-for test_name, basename_noext, args in null_tests:
-    if basename_noext == None:
-        basename_noext = test_name
+for basename_noext, args in null_tests:
     gem5_verify_config(
-        name=test_name,
+        name=basename_noext,
         fixtures=(),
         verifiers=(),
         config=joinpath(config.base_dir, 'configs',

@@ -58,7 +58,7 @@
 namespace gem5
 {
 
-struct BaseO3CPUParams;
+struct O3CPUParams;
 
 namespace o3
 {
@@ -127,7 +127,7 @@ class IEW
 
   public:
     /** Constructs a IEW with the given parameters. */
-    IEW(CPU *_cpu, const BaseO3CPUParams &params);
+    IEW(CPU *_cpu, const O3CPUParams &params);
 
     /** Returns the name of the IEW stage. */
     std::string name() const;

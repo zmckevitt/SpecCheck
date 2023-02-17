@@ -52,7 +52,7 @@
 #include "cpu/minor/cpu.hh"
 #include "cpu/minor/pipe_data.hh"
 #include "cpu/pred/bpred_unit.hh"
-#include "params/BaseMinorCPU.hh"
+#include "params/MinorCPU.hh"
 
 namespace gem5
 {
@@ -201,7 +201,7 @@ class Fetch2 : public Named
   public:
     Fetch2(const std::string &name,
         MinorCPU &cpu_,
-        const BaseMinorCPUParams &params,
+        const MinorCPUParams &params,
         Latch<ForwardLineData>::Output inp_,
         Latch<BranchData>::Output branchInp_,
         Latch<BranchData>::Input predictionOut_,

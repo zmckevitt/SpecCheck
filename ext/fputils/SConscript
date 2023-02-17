@@ -28,11 +28,11 @@
 #
 # Authors: Andreas Sandberg
 
-Import('env')
+Import('main')
 
-env.Prepend(CPPPATH=Dir('./include'))
+main.Prepend(CPPPATH=Dir('./include'))
 
-fpenv = env.Clone()
+fpenv = main.Clone()
 
 # By default gcc uses c89 and clang uses c99. For fputils to compile
 # we need to use c99.
@@ -44,6 +44,6 @@ fpenv.Library('fputils', [
         fpenv.SharedObject('fp80.c'),
     ])
 
-env.Append(LIBS=['fputils'])
-env.Prepend(LIBPATH=[Dir('.')])
+main.Append(LIBS=['fputils'])
+main.Prepend(LIBPATH=[Dir('.')])
 

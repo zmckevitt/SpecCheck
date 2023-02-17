@@ -1163,21 +1163,21 @@ template
 double FpOp::unaryOp(FPSCR &fpscr, double op1, double (*func)(double),
                      bool flush, uint32_t rMode) const;
 
-RegIndex
-VfpMacroOp::addStride(RegIndex idx, unsigned stride)
+IntRegIndex
+VfpMacroOp::addStride(IntRegIndex idx, unsigned stride)
 {
     if (wide) {
         stride *= 2;
     }
     unsigned offset = idx % 8;
-    idx = (RegIndex)(idx - offset);
+    idx = (IntRegIndex)(idx - offset);
     offset += stride;
-    idx = (RegIndex)(idx + (offset % 8));
+    idx = (IntRegIndex)(idx + (offset % 8));
     return idx;
 }
 
 void
-VfpMacroOp::nextIdxs(RegIndex &dest, RegIndex &op1, RegIndex &op2)
+VfpMacroOp::nextIdxs(IntRegIndex &dest, IntRegIndex &op1, IntRegIndex &op2)
 {
     unsigned stride = (machInst.fpscrStride == 0) ? 1 : 2;
     assert(!inScalarBank(dest));
@@ -1189,7 +1189,7 @@ VfpMacroOp::nextIdxs(RegIndex &dest, RegIndex &op1, RegIndex &op2)
 }
 
 void
-VfpMacroOp::nextIdxs(RegIndex &dest, RegIndex &op1)
+VfpMacroOp::nextIdxs(IntRegIndex &dest, IntRegIndex &op1)
 {
     unsigned stride = (machInst.fpscrStride == 0) ? 1 : 2;
     assert(!inScalarBank(dest));
@@ -1200,7 +1200,7 @@ VfpMacroOp::nextIdxs(RegIndex &dest, RegIndex &op1)
 }
 
 void
-VfpMacroOp::nextIdxs(RegIndex &dest)
+VfpMacroOp::nextIdxs(IntRegIndex &dest)
 {
     unsigned stride = (machInst.fpscrStride == 0) ? 1 : 2;
     assert(!inScalarBank(dest));

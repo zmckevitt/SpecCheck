@@ -66,12 +66,7 @@ class IrisISA(BaseISA):
     cxx_class = 'gem5::Iris::ISA'
     cxx_header = 'arch/arm/fastmodel/iris/isa.hh'
 
-class IrisCPU():
-    ArchMMU = IrisMMU
-    ArchInterrupts = IrisInterrupts
-    ArchISA = IrisISA
-
-class IrisBaseCPU(BaseCPU, IrisCPU):
+class IrisBaseCPU(BaseCPU):
     type = 'IrisBaseCPU'
     abstract = True
     cxx_class = 'gem5::Iris::BaseCPU'
@@ -102,3 +97,6 @@ class IrisBaseCPU(BaseCPU, IrisCPU):
             self.isa = [ IrisISA() for i in range(self.numThreads) ]
         else:
             assert(len(self.isa) == int(self.numThreads))
+
+    def createInterruptController(self):
+        self.interrupts = [ IrisInterrupts() for i in range(self.numThreads) ]

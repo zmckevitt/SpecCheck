@@ -93,24 +93,8 @@ bool
 DynPoolManager::canAllocate(uint32_t numRegions, uint32_t size)
 {
     uint32_t actualSize = minAllocatedElements(size);
-    uint32_t numAvailChunks = 0;
-    DPRINTF(GPUVRF, "Checking if we can allocate %d regions of size %d "
-                    "registers\n", numRegions, actualSize);
-    for (auto it : freeSpaceRecord) {
-        numAvailChunks += (it.second - it.first)/actualSize;
-    }
-
-    if (numAvailChunks >= numRegions) {
-        DPRINTF(GPUVRF, "Able to allocate %d regions of size %d; "
-                        "number of available regions: %d\n",
-                        numRegions, actualSize, numAvailChunks);
-        return true;
-    } else {
-        DPRINTF(GPUVRF, "Unable to allocate %d regions of size %d; "
-                        "number of available regions: %d\n",
-                        numRegions, actualSize, numAvailChunks);
-        return false;
-    }
+    DPRINTF(GPUVRF,"Can Allocate %d\n",actualSize);
+    return (_totRegSpaceAvailable >= actualSize);
 }
 
 uint32_t
@@ -121,8 +105,7 @@ DynPoolManager::allocateRegion(const uint32_t size,
     uint32_t actualSize = minAllocatedElements(size);
     auto it = freeSpaceRecord.begin();
     while (it != freeSpaceRecord.end()) {
-        uint32_t curChunkSize = it->second - it->first;
-        if (curChunkSize >= actualSize) {
+        if (it->second >= actualSize) {
             // assign the next block starting from here
             startIdx = it->first;
             _regionSize = actualSize;
@@ -132,13 +115,14 @@ DynPoolManager::allocateRegion(const uint32_t size,
             // This case sees if this chunk size is exactly equal to
             // the size of the requested chunk. If yes, then this can't
             // contribute to future requests and hence, should be removed
-            if (curChunkSize == actualSize) {
+            if (it->second == actualSize) {
                 it = freeSpaceRecord.erase(it);
                 // once entire freeSpaceRecord allocated, increment
                 // reservedSpaceRecord count
                 ++reservedSpaceRecord;
             } else {
                 it->first += actualSize;
+                it->second -= actualSize;
             }
             break;
         }
@@ -160,32 +144,7 @@ DynPoolManager::freeRegion(uint32_t firstIdx,
     // Current dynamic register allocation does not handle wraparound
     assert(firstIdx < lastIdx);
     _totRegSpaceAvailable += lastIdx-firstIdx;
-
-    // Consolidate with other regions. Need to check if firstIdx or lastIdx
-    // already exist
-    auto firstIt = std::find_if(
-            freeSpaceRecord.begin(),
-            freeSpaceRecord.end(),
-            [&](const std::pair<int, int>& element){
-                return element.second == firstIdx;} );
-
-    auto lastIt = std::find_if(
-            freeSpaceRecord.begin(),
-            freeSpaceRecord.end(),
-            [&](const std::pair<int, int>& element){
-                return element.first == lastIdx;} );
-
-    if (firstIt != freeSpaceRecord.end() && lastIt != freeSpaceRecord.end()) {
-        firstIt->second = lastIt->second;
-        freeSpaceRecord.erase(lastIt);
-    } else if (firstIt != freeSpaceRecord.end()) {
-        firstIt->second = lastIdx;
-    } else if (lastIt != freeSpaceRecord.end()) {
-        lastIt->first = firstIdx;
-    } else {
-        freeSpaceRecord.push_back(std::make_pair(firstIdx, lastIdx));
-    }
-
+    freeSpaceRecord.push_back(std::make_pair(firstIdx,lastIdx-firstIdx));
     // remove corresponding entry from reservedSpaceRecord too
     --reservedSpaceRecord;
 }

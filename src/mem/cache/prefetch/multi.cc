@@ -48,8 +48,7 @@ namespace prefetch
 
 Multi::Multi(const MultiPrefetcherParams &p)
   : Base(p),
-    prefetchers(p.prefetchers.begin(), p.prefetchers.end()),
-    lastChosenPf(0)
+    prefetchers(p.prefetchers.begin(), p.prefetchers.end())
 {
 }
 
@@ -74,18 +73,14 @@ Multi::nextPrefetchReadyTime() const
 PacketPtr
 Multi::getPacket()
 {
-    lastChosenPf = (lastChosenPf + 1) % prefetchers.size();
-    uint8_t pf_turn = lastChosenPf;
-
-    for (int pf = 0 ;  pf < prefetchers.size(); pf++) {
-        if (prefetchers[pf_turn]->nextPrefetchReadyTime() <= curTick()) {
-            PacketPtr pkt = prefetchers[pf_turn]->getPacket();
+    for (auto pf : prefetchers) {
+        if (pf->nextPrefetchReadyTime() <= curTick()) {
+            PacketPtr pkt = pf->getPacket();
             panic_if(!pkt, "Prefetcher is ready but didn't return a packet.");
             prefetchStats.pfIssued++;
             issuedPrefetches++;
             return pkt;
         }
-        pf_turn = (pf_turn + 1) % prefetchers.size();
     }
 
     return nullptr;

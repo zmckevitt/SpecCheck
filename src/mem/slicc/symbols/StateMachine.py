@@ -105,8 +105,6 @@ class StateMachine(Symbol):
         self.objects = []
         self.TBEType   = None
         self.EntryType = None
-        # Python's sets are not sorted so we have to be careful when using
-        # this to generate deterministic output.
         self.debug_flags = set()
         self.debug_flags.add('RubyGenerated')
         self.debug_flags.add('RubySlicc')
@@ -518,9 +516,8 @@ void unset_tbe(${{self.TBEType.c_ident}}*& m_tbe_ptr);
 
         code(boolvec_include)
         code(base_include)
-        # We have to sort self.debug_flags in order to produce deterministic
-        # output and avoid unnecessary rebuilds of the generated files.
-        for f in sorted(self.debug_flags):
+
+        for f in self.debug_flags:
             code('#include "debug/${{f}}.hh"')
         code('''
 #include "mem/ruby/network/Network.hh"
@@ -1249,9 +1246,7 @@ $c_ident::functionalReadBuffers(PacketPtr& pkt, WriteMask &mask)
 #include "base/logging.hh"
 
 ''')
-        # We have to sort self.debug_flags in order to produce deterministic
-        # output and avoid unnecessary rebuilds of the generated files.
-        for f in sorted(self.debug_flags):
+        for f in self.debug_flags:
             code('#include "debug/${{f}}.hh"')
         code('''
 #include "mem/ruby/protocol/${ident}_Controller.hh"

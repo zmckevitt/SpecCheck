@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, 2015, 2018, 2020-2021 ARM Limited
+ * Copyright (c) 2012-2013, 2015, 2018, 2020 ARM Limited
  * All rights reserved.
  *
  * The license below extends only to copyright in the software and shall
@@ -44,7 +44,7 @@
 #include "cpu/simple/base.hh"
 #include "cpu/simple/exec_context.hh"
 #include "mem/request.hh"
-#include "params/BaseAtomicSimpleCPU.hh"
+#include "params/AtomicSimpleCPU.hh"
 #include "sim/probe/probe.hh"
 
 namespace gem5
@@ -54,7 +54,7 @@ class AtomicSimpleCPU : public BaseSimpleCPU
 {
   public:
 
-    AtomicSimpleCPU(const BaseAtomicSimpleCPUParams &params);
+    AtomicSimpleCPU(const AtomicSimpleCPUParams &params);
     virtual ~AtomicSimpleCPU();
 
     void init() override;
@@ -224,10 +224,10 @@ class AtomicSimpleCPU : public BaseSimpleCPU
         override;
 
     Fault
-    initiateMemMgmtCmd(Request::Flags flags) override
+    initiateHtmCmd(Request::Flags flags) override
     {
-        panic("initiateMemMgmtCmd() is for timing accesses, and "
-              "should never be called on AtomicSimpleCPU.\n");
+        panic("initiateHtmCmd() is for timing accesses, and should "
+              "never be called on AtomicSimpleCPU.\n");
     }
 
     void

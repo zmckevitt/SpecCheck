@@ -25,7 +25,7 @@
 
 Import('*')
 
-if env['CONF']['USE_SYSTEMC']:
+if env['USE_SYSTEMC']:
     Source('messages.cc')
     Source('sc_fxcast_switch.cc')
     Source('sc_fxdefs.cc')

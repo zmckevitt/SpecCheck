@@ -477,7 +477,6 @@ RubySystem::resetStats()
     for (auto& network : m_networks) {
         network->resetStats();
     }
-    ClockedObject::resetStats();
 }
 
 #ifndef PARTIAL_FUNC_READS

@@ -38,10 +38,7 @@
 #include "cpu/base.hh"
 #include "cpu/reg_class.hh"
 #include "cpu/thread_context.hh"
-#include "debug/FloatRegs.hh"
-#include "debug/IntRegs.hh"
 #include "debug/MipsPRA.hh"
-#include "debug/MiscRegs.hh"
 #include "params/MipsISA.hh"
 
 namespace gem5
@@ -100,13 +97,13 @@ ISA::miscRegNames[MISCREG_NUMREGS] =
 ISA::ISA(const Params &p) : BaseISA(p), numThreads(p.num_threads),
     numVpes(p.num_vpes)
 {
-    _regClasses.emplace_back(NumIntRegs, debug::IntRegs);
-    _regClasses.emplace_back(NumFloatRegs, debug::FloatRegs);
-    _regClasses.emplace_back(1, debug::IntRegs); // Not applicable to MIPS.
-    _regClasses.emplace_back(2, debug::IntRegs); // Not applicable to MIPS.
-    _regClasses.emplace_back(1, debug::IntRegs); // Not applicable to MIPS.
-    _regClasses.emplace_back(0, debug::IntRegs); // Not applicable to MIPS.
-    _regClasses.emplace_back(MISCREG_NUMREGS, debug::MiscRegs);
+    _regClasses.emplace_back(NumIntRegs, 0);
+    _regClasses.emplace_back(NumFloatRegs);
+    _regClasses.emplace_back(1); // Not applicable to MIPS.
+    _regClasses.emplace_back(2); // Not applicable to MIPS.
+    _regClasses.emplace_back(1); // Not applicable to MIPS.
+    _regClasses.emplace_back(0); // Not applicable to MIPS.
+    _regClasses.emplace_back(MISCREG_NUMREGS);
 
     miscRegFile.resize(MISCREG_NUMREGS);
     bankType.resize(MISCREG_NUMREGS);

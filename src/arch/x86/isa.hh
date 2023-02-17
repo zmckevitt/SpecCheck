@@ -35,7 +35,6 @@
 #include "arch/generic/isa.hh"
 #include "arch/x86/pcstate.hh"
 #include "arch/x86/regs/float.hh"
-#include "arch/x86/regs/int.hh"
 #include "arch/x86/regs/misc.hh"
 #include "base/types.hh"
 #include "cpu/reg_class.hh"
@@ -52,7 +51,7 @@ namespace X86ISA
 class ISA : public BaseISA
 {
   private:
-    RegVal regVal[misc_reg::NumRegs];
+    RegVal regVal[NUM_MISCREGS];
     void updateHandyM5Reg(Efer efer, CR0 cr0,
             SegAttr csAttr, SegAttr ssAttr, RFLAGS rflags);
 
@@ -100,9 +99,9 @@ class ISA : public BaseISA
     int
     flattenFloatIndex(int reg) const
     {
-        if (reg >= float_reg::NumRegs) {
-            reg = float_reg::stack(reg - float_reg::NumRegs,
-                                   regVal[misc_reg::X87Top]);
+        if (reg >= NUM_FLOATREGS) {
+            reg = FLOATREG_STACK(reg - NUM_FLOATREGS,
+                                 regVal[MISCREG_X87_TOP]);
         }
         return reg;
     }
@@ -116,7 +115,7 @@ class ISA : public BaseISA
     bool
     inUserMode() const override
     {
-        HandyM5Reg m5reg = readMiscRegNoEffect(misc_reg::M5Reg);
+        HandyM5Reg m5reg = readMiscRegNoEffect(MISCREG_M5_REG);
         return m5reg.cpl == 3;
     }
 

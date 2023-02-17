@@ -74,7 +74,8 @@ def attach_9p(parent, bus):
     viodir = os.path.realpath(os.path.join(m5.options.outdir, '9p'))
     viopci.vio.root = os.path.join(viodir, 'share')
     viopci.vio.socketPath = os.path.join(viodir, 'socket')
-    os.makedirs(viopci.vio.root, exist_ok=True)
+    if not os.path.exists(viopci.vio.root):
+        os.makedirs(viopci.vio.root)
     if os.path.exists(viopci.vio.socketPath):
         os.remove(viopci.vio.socketPath)
     parent.viopci = viopci
@@ -443,8 +444,6 @@ def connectX86RubySystem(x86_sys):
 
 def makeX86System(mem_mode, numCPUs=1, mdesc=None, workload=None, Ruby=False):
     self = System()
-
-    self.m5ops_base = 0xffff0000
 
     if workload is None:
         workload = X86FsWorkload()

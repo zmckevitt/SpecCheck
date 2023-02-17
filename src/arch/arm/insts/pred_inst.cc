@@ -54,7 +54,10 @@ PredIntOp::generateDisassembly(
     uint32_t imm = machInst.imm;
     imm = (imm << (32 - rotate)) | (imm >> rotate);
     printDataInst(ss, false, machInst.opcode4 == 0, machInst.sField,
-            machInst.rd, machInst.rn, machInst.rm, machInst.rs,
+            (IntRegIndex)(uint32_t)machInst.rd,
+            (IntRegIndex)(uint32_t)machInst.rn,
+            (IntRegIndex)(uint32_t)machInst.rm,
+            (IntRegIndex)(uint32_t)machInst.rs,
             machInst.shiftSize, (ArmShiftType)(uint32_t)machInst.shift,
             imm);
     return ss.str();
@@ -66,7 +69,10 @@ PredImmOp::generateDisassembly(
 {
     std::stringstream ss;
     printDataInst(ss, true, machInst.opcode4 == 0, machInst.sField,
-            machInst.rd, machInst.rn, machInst.rm, machInst.rs,
+            (IntRegIndex)(uint32_t)machInst.rd,
+            (IntRegIndex)(uint32_t)machInst.rn,
+            (IntRegIndex)(uint32_t)machInst.rm,
+            (IntRegIndex)(uint32_t)machInst.rs,
             machInst.shiftSize, (ArmShiftType)(uint32_t)machInst.shift,
             imm);
     return ss.str();
@@ -78,7 +84,7 @@ DataImmOp::generateDisassembly(
 {
     std::stringstream ss;
     printDataInst(ss, true, false, /*XXX not really s*/ false, dest, op1,
-                  int_reg::Zero, int_reg::Zero, 0, LSL, imm);
+                  INTREG_ZERO, INTREG_ZERO, 0, LSL, imm);
     return ss.str();
 }
 
@@ -88,7 +94,7 @@ DataRegOp::generateDisassembly(
 {
     std::stringstream ss;
     printDataInst(ss, false, true, /*XXX not really s*/ false, dest, op1,
-                  op2, int_reg::Zero, shiftAmt, shiftType, 0);
+                  op2, INTREG_ZERO, shiftAmt, shiftType, 0);
     return ss.str();
 }
 

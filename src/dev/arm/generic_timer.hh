@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2015, 2017-2018,2020,2022 Arm Limited
+ * Copyright (c) 2013, 2015, 2017-2018,2020 ARM Limited
  * All rights reserved.
  *
  * The license below extends only to copyright in the software and shall
@@ -280,7 +280,9 @@ class ArchTimerKvm : public ArchTimer
     // For ArchTimer's in a GenericTimerISA with Kvm execution about
     // to begin, skip rescheduling the event.
     // Otherwise, we should reschedule the event (if necessary).
-    bool scheduleEvents() override;
+    bool scheduleEvents() override {
+        return !system.validKvmEnvironment();
+    }
 };
 
 class GenericTimer : public SimObject
@@ -302,13 +304,8 @@ class GenericTimer : public SimObject
     {
       public:
         CoreTimers(GenericTimer &_parent, ArmSystem &system, unsigned cpu,
-                   ArmInterruptPin *irq_el3_phys,
-                   ArmInterruptPin *irq_el1_phys,
-                   ArmInterruptPin *irq_el1_virt,
-                   ArmInterruptPin *irq_el2_ns_phys,
-                   ArmInterruptPin *irq_el2_ns_virt,
-                   ArmInterruptPin *irq_el2_s_phys,
-                   ArmInterruptPin *irq_el2_s_virt);
+                   ArmInterruptPin *_irqPhysS, ArmInterruptPin *_irqPhysNS,
+                   ArmInterruptPin *_irqVirt, ArmInterruptPin *_irqHyp);
 
         /// Generic Timer parent reference
         GenericTimer &parent;
@@ -325,21 +322,15 @@ class GenericTimer : public SimObject
         /// Thread (HW) context associated to this PE implementation
         ThreadContext *threadContext;
 
-        ArmInterruptPin const *irqPhysEL3;
-        ArmInterruptPin const *irqPhysEL1;
-        ArmInterruptPin const *irqVirtEL1;
-        ArmInterruptPin const *irqPhysNsEL2;
-        ArmInterruptPin const *irqVirtNsEL2;
-        ArmInterruptPin const *irqPhysSEL2;
-        ArmInterruptPin const *irqVirtSEL2;
+        ArmInterruptPin const *irqPhysS;
+        ArmInterruptPin const *irqPhysNS;
+        ArmInterruptPin const *irqVirt;
+        ArmInterruptPin const *irqHyp;
 
-        ArchTimerKvm physEL3;
-        ArchTimerKvm physEL1;
-        ArchTimerKvm virtEL1;
-        ArchTimerKvm physNsEL2;
-        ArchTimerKvm virtNsEL2;
-        ArchTimerKvm physSEL2;
-        ArchTimerKvm virtSEL2;
+        ArchTimerKvm physS;
+        ArchTimerKvm physNS;
+        ArchTimerKvm virt;
+        ArchTimerKvm hyp;
 
         // Event Stream. Events are generated based on a configurable
         // transitionBit over the counter value. transitionTo indicates

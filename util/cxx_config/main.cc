@@ -108,10 +108,11 @@ main(int argc, char **argv)
     if (argc == 1)
         usage(prog_name);
 
+    cxxConfigInit();
+
     initSignals();
 
     setClockFrequency(1000000000000);
-    fixClockFrequency();
     curEventQueue(getEventQueue(0));
 
     statistics::initSimStats();
@@ -247,7 +248,7 @@ main(int argc, char **argv)
         /* FIXME, this should really be serialising just for
          *  config_manager rather than using serializeAll's ugly
          *  SimObject static object list */
-        SimObject::serializeAll(checkpoint_dir);
+        Serializable::serializeAll(checkpoint_dir);
 
         std::cerr << "Completed checkpoint\n";
 
@@ -257,11 +258,11 @@ main(int argc, char **argv)
     if (checkpoint_restore) {
         std::cerr << "Restoring checkpoint\n";
 
-        SimObject::setSimObjectResolver(
-            &config_manager->getSimObjectResolver());
-        CheckpointIn *checkpoint = new CheckpointIn(checkpoint_dir);
+        CheckpointIn *checkpoint = new CheckpointIn(checkpoint_dir,
+            config_manager->getSimObjectResolver());
 
         DrainManager::instance().preCheckpointRestore();
+        Serializable::unserializeGlobals(*checkpoint);
         config_manager->loadState(*checkpoint);
         config_manager->startup();
 

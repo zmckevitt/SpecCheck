@@ -165,9 +165,8 @@ bool
 SelfDebug::isDebugEnabledForEL64(ThreadContext *tc, ExceptionLevel el,
                          bool secure, bool mask)
 {
-    bool route_to_el2 = ArmSystem::haveEL(tc, EL2) &&
-                        (!secure || HaveExt(tc, ArmExtension::FEAT_SEL2)) &&
-                        enableTdeTge;
+    bool route_to_el2 =  ArmSystem::haveEL(tc, EL2) &&
+                         (!secure || HaveSecureEL2Ext(tc)) && enableTdeTge;
 
     ExceptionLevel target_el = route_to_el2 ? EL2 : EL1;
     if (oslk || (sdd && secure && ArmSystem::haveEL(tc, EL3))) {
@@ -257,13 +256,12 @@ BrkPoint::test(ThreadContext *tc, Addr pc, ExceptionLevel el, DBGBCR ctr,
         break;
 
       case 0x6:
-        if (HaveExt(tc, ArmExtension::FEAT_VHE) && !ELIsInHost(tc, el))
+        if (HaveVirtHostExt(tc) && !ELIsInHost(tc, el))
              v = testContextMatch(tc, true);
         break;
 
       case 0x7:
-        if (HaveExt(tc, ArmExtension::FEAT_VHE) && !ELIsInHost(tc, el) &&
-            from_link)
+        if (HaveVirtHostExt(tc) && !ELIsInHost(tc, el) && from_link)
             v = testContextMatch(tc, true);
         break;
 
@@ -294,29 +292,27 @@ BrkPoint::test(ThreadContext *tc, Addr pc, ExceptionLevel el, DBGBCR ctr,
         break;
 
       case 0xc:
-        if (HaveExt(tc, ArmExtension::FEAT_VHE) &&
-            (!isSecure(tc)|| HaveExt(tc, ArmExtension::FEAT_SEL2)))
+        if (HaveVirtHostExt(tc) && (!isSecure(tc)|| HaveSecureEL2Ext(tc)))
             v = testContextMatch(tc, false);
         break;
 
       case 0xd:
-        if (HaveExt(tc, ArmExtension::FEAT_VHE) && from_link &&
-            (!isSecure(tc)|| HaveExt(tc, ArmExtension::FEAT_SEL2))) {
+        if (HaveVirtHostExt(tc) && from_link &&
+            (!isSecure(tc)|| HaveSecureEL2Ext(tc))) {
              v = testContextMatch(tc, false);
         }
         break;
 
       case 0xe:
-        if (HaveExt(tc, ArmExtension::FEAT_VHE) && !ELIsInHost(tc, el) &&
-            (!isSecure(tc)|| HaveExt(tc, ArmExtension::FEAT_SEL2))) {
+        if (HaveVirtHostExt(tc) && !ELIsInHost(tc, el) &&
+            (!isSecure(tc)|| HaveSecureEL2Ext(tc))) {
             v = testContextMatch(tc, true); // CONTEXTIDR_EL1
             v = v && testContextMatch(tc, false); // CONTEXTIDR_EL2
         }
         break;
       case 0xf:
-        if (HaveExt(tc, ArmExtension::FEAT_VHE) && !ELIsInHost(tc, el) &&
-            from_link &&
-            (!isSecure(tc)|| HaveExt(tc, ArmExtension::FEAT_SEL2))) {
+        if (HaveVirtHostExt(tc) && !ELIsInHost(tc, el) && from_link &&
+            (!isSecure(tc)|| HaveSecureEL2Ext(tc))) {
             v = testContextMatch(tc, true); // CONTEXTIDR_EL1
             v = v && testContextMatch(tc, false); // CONTEXTIDR_EL2
         }

@@ -61,8 +61,7 @@ class Switch;
 class SimpleNetwork : public Network
 {
   public:
-    PARAMS(SimpleNetwork);
-
+    typedef SimpleNetworkParams Params;
     SimpleNetwork(const Params &p);
     ~SimpleNetwork() = default;
 
@@ -70,6 +69,7 @@ class SimpleNetwork : public Network
 
     int getBufferSize() { return m_buffer_size; }
     int getEndpointBandwidth() { return m_endpoint_bandwidth; }
+    bool getAdaptiveRouting() {return m_adaptive_routing; }
 
     void collateStats();
     void regStats();
@@ -102,10 +102,12 @@ class SimpleNetwork : public Network
     SimpleNetwork(const SimpleNetwork& obj);
     SimpleNetwork& operator=(const SimpleNetwork& obj);
 
-    std::unordered_map<int, Switch*> m_switches;
+    std::vector<Switch*> m_switches;
     std::vector<MessageBuffer*> m_int_link_buffers;
+    int m_num_connected_buffers;
     const int m_buffer_size;
     const int m_endpoint_bandwidth;
+    const bool m_adaptive_routing;
 
 
     struct NetworkStats : public statistics::Group

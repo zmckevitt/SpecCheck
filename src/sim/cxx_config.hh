@@ -119,9 +119,6 @@ class CxxConfigDirectoryEntry
     virtual ~CxxConfigDirectoryEntry() { }
 };
 
-/** Directory of all SimObject classes config details */
-std::map<std::string, CxxConfigDirectoryEntry *> &cxxConfigDirectory();
-
 /** Base for peer classes of SimObjectParams derived classes with parameter
  *  modifying member functions. C++ configuration will offer objects of
  *  these classes to SimObjects as params rather than SimObjectParams
@@ -130,18 +127,6 @@ class CxxConfigParams
 {
   private:
     static const std::string invalidName;
-
-  protected:
-    struct AddToConfigDir
-    {
-        AddToConfigDir(const std::string &name, CxxConfigDirectoryEntry *entry)
-        {
-            auto it_success = cxxConfigDirectory().insert({name, entry});
-            panic_if(!it_success.second,
-                    "Failed to insert config directory entry %s (duplicate?).",
-                    name);
-        }
-    };
 
   public:
     /** Flags passable to setParam... to smooth over any parsing difference
@@ -243,6 +228,14 @@ class CxxConfigFileBase
      *  behaviour */
     virtual CxxConfigParams::Flags getFlags() const { return 0; }
 };
+
+/** Directory of all SimObject classes config details */
+extern std::map<std::string, CxxConfigDirectoryEntry *>
+    cxx_config_directory;
+
+/** Initialise cxx_config_directory.  This is defined in the
+ *  auto-generated .../cxx_config/init.cc */
+void cxxConfigInit();
 
 } // namespace gem5
 

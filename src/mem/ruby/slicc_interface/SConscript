@@ -28,7 +28,7 @@
 
 Import('*')
 
-if env['CONF']['PROTOCOL'] == 'None':
+if env['PROTOCOL'] == 'None':
     Return()
 
 SimObject('Controller.py', sim_objects=['RubyController'])

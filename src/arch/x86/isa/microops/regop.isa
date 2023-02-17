@@ -404,7 +404,7 @@ let {{
                     PredezfBit, ext & ~mask, result, PSrcReg1, op2);
             PredezfBit = newFlags & EZFBit;
             PreddfBit = newFlags & DFBit;
-            PredccFlagBits = newFlags & CcFlagMask;
+            PredccFlagBits = newFlags & ccFlagMask;
 
             //If a logic microop wants to set these, it wants to set them to 0.
             PredcfofBits = PredcfofBits & ~((CFBit | OFBit) & ext);
@@ -418,11 +418,11 @@ let {{
                                     PreddfBit | PredecfBit | PredezfBit,
                                     ext, result, PSrcReg1, op2);
 
-            PredcfofBits = newFlags & CfofMask;
+            PredcfofBits = newFlags & cfofMask;
             PredecfBit = newFlags & ECFBit;
             PredezfBit = newFlags & EZFBit;
             PreddfBit = newFlags & DFBit;
-            PredccFlagBits = newFlags & CcFlagMask;
+            PredccFlagBits = newFlags & ccFlagMask;
         '''
 
     class SubRegOp(BasicRegOp):
@@ -432,11 +432,11 @@ let {{
                                          PreddfBit | PredecfBit | PredezfBit,
                                          ext, result, PSrcReg1, ~op2, true);
 
-            PredcfofBits = newFlags & CfofMask;
+            PredcfofBits = newFlags & cfofMask;
             PredecfBit = newFlags & ECFBit;
             PredezfBit = newFlags & EZFBit;
             PreddfBit = newFlags & DFBit;
-            PredccFlagBits = newFlags & CcFlagMask;
+            PredccFlagBits = newFlags & ccFlagMask;
         '''
 
     class CondRegOp(RegOp):
@@ -748,7 +748,7 @@ let {{
 
                 PredezfBit = newFlags & EZFBit;
                 PreddfBit = newFlags & DFBit;
-                PredccFlagBits = newFlags & CcFlagMask;
+                PredccFlagBits = newFlags & ccFlagMask;
             }
         '''
 
@@ -794,7 +794,7 @@ let {{
 
                 PredezfBit = newFlags & EZFBit;
                 PreddfBit = newFlags & DFBit;
-                PredccFlagBits = newFlags & CcFlagMask;
+                PredccFlagBits = newFlags & ccFlagMask;
             }
         '''
 
@@ -840,7 +840,7 @@ let {{
 
                 PredezfBit = newFlags & EZFBit;
                 PreddfBit = newFlags & DFBit;
-                PredccFlagBits = newFlags & CcFlagMask;
+                PredccFlagBits = newFlags & ccFlagMask;
             }
         '''
 
@@ -884,7 +884,7 @@ let {{
 
                 PredezfBit = newFlags & EZFBit;
                 PreddfBit = newFlags & DFBit;
-                PredccFlagBits = newFlags & CcFlagMask;
+                PredccFlagBits = newFlags & ccFlagMask;
             }
         '''
 
@@ -933,7 +933,7 @@ let {{
 
                 PredezfBit = newFlags & EZFBit;
                 PreddfBit = newFlags & DFBit;
-                PredccFlagBits = newFlags & CcFlagMask;
+                PredccFlagBits = newFlags & ccFlagMask;
             }
         '''
 
@@ -978,7 +978,7 @@ let {{
 
                 PredezfBit = newFlags & EZFBit;
                 PreddfBit = newFlags & DFBit;
-                PredccFlagBits = newFlags & CcFlagMask;
+                PredccFlagBits = newFlags & ccFlagMask;
             }
         '''
 
@@ -1028,7 +1028,7 @@ let {{
 
                 PredezfBit = newFlags & EZFBit;
                 PreddfBit = newFlags & DFBit;
-                PredccFlagBits = newFlags & CcFlagMask;
+                PredccFlagBits = newFlags & ccFlagMask;
             }
         '''
 
@@ -1088,7 +1088,7 @@ let {{
 
                 PredezfBit = newFlags & EZFBit;
                 PreddfBit = newFlags & DFBit;
-                PredccFlagBits = newFlags & CcFlagMask;
+                PredccFlagBits = newFlags & ccFlagMask;
             }
         '''
 
@@ -1154,7 +1154,7 @@ let {{
 
                 PredezfBit = newFlags & EZFBit;
                 PreddfBit = newFlags & DFBit;
-                PredccFlagBits = newFlags & CcFlagMask;
+                PredccFlagBits = newFlags & ccFlagMask;
             }
         '''
 
@@ -1162,36 +1162,33 @@ let {{
         code = 'DoubleBits = PSrcReg1 ^ op2;'
 
     class Wrip(WrRegOp, CondRegOp):
-        code = 'NRIP = ((SrcReg1 + sop2) & mask(dataSize * 8)) + CSBase;'
+        code = 'NRIP = PSrcReg1 + sop2 + CSBase;'
         else_code = "NRIP = NRIP;"
 
     class Wruflags(WrRegOp):
         code = '''
             uint64_t newFlags = PSrcReg1 ^ op2;
-            cfofBits = newFlags & CfofMask;
+            cfofBits = newFlags & cfofMask;
             ecfBit = newFlags & ECFBit;
             ezfBit = newFlags & EZFBit;
             dfBit = newFlags & DFBit;
-            ccFlagBits = newFlags & CcFlagMask;
+            ccFlagBits = newFlags & ccFlagMask;
         '''
 
     class Wrflags(WrRegOp):
         code = '''
-            const RegVal new_flags = PSrcReg1 ^ op2;
+            RegVal newFlags = PSrcReg1 ^ op2;
+            RegVal userFlagMask = 0xDD5;
 
             // Get only the user flags
-            ccFlagBits = new_flags & CcFlagMask;
-            dfBit = new_flags & DFBit;
-            cfofBits = new_flags & CfofMask;
+            ccFlagBits = newFlags & ccFlagMask;
+            dfBit = newFlags & DFBit;
+            cfofBits = newFlags & cfofMask;
             ecfBit = 0;
             ezfBit = 0;
 
             // Get everything else
-            const RegVal IOPLMask = mask(2) << 12;
-            const RegVal SysFlagMask =
-                TFBit | IFBit | IOPLMask | NTBit | RFBit | VMBit |
-                ACBit | VIFBit | VIPBit | IDBit;
-            nccFlagBits = new_flags & SysFlagMask;
+            nccFlagBits = newFlags & ~userFlagMask;
         '''
 
     class Rdip(RdRegOp):
@@ -1203,7 +1200,7 @@ let {{
     class Rflags(RdRegOp):
         code = '''
             DestReg = ccFlagBits | cfofBits | dfBit |
-                      ecfBit | ezfBit | nccFlagBits | (1 << 1);
+                      ecfBit | ezfBit | nccFlagBits;
             '''
 
     class Ruflag(RegOp):
@@ -1533,12 +1530,14 @@ let {{
                     break;
                 }
               case SegIntCSCheck:
-                if (desc.type.codeOrData != 1) {
-                    fault = std::make_shared<GeneralProtection>(selector);
-                } else if (m5reg.mode == LongMode) {
+                if (m5reg.mode == LongMode) {
                     if (desc.l != 1 || desc.d != 0) {
                         fault = std::make_shared<GeneralProtection>(selector);
                     }
+                } else {
+                    fault = std::make_shared<GenericISA::M5PanicFault>(
+                            "Interrupt CS "
+                            "checks not implemented in legacy mode.\\n");
                 }
                 break;
               case SegTRCheck:
@@ -1670,15 +1669,9 @@ let {{
                     SegLimitDest = desc.limit;
                     SegAttrDest = attr;
                 } else {
-                    HandyM5Reg m5reg = M5Reg;
-
                     SegBaseDest = SegBaseDest;
                     SegLimitDest = SegLimitDest;
-
-                    SegAttr attr = SegAttrDest;
-                    if (m5reg != LongMode)
-                        attr.unusable = 1;
-                    SegAttrDest = attr;
+                    SegAttrDest = SegAttrDest;
                 }
                 break;
             }

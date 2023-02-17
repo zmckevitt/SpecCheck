@@ -34,7 +34,6 @@
 #include <vector>
 
 #include "base/compiler.hh"
-#include "base/logging.hh"
 #include "base/trace.hh"
 #include "cpu/reg_class.hh"
 #include "debug/Scoreboard.hh"
@@ -58,6 +57,9 @@ class Scoreboard
      *  explicitly because Scoreboard is not a SimObject. */
     const std::string _name;
 
+    /** Index of the zero integer register. */
+    const RegIndex zeroReg;
+
     /** Scoreboard of physical integer registers, saying whether or not they
      *  are ready. */
     std::vector<bool> regScoreBoard;
@@ -70,7 +72,8 @@ class Scoreboard
      *  @param _numPhysicalRegs Number of physical registers.
      *  @param _numMiscRegs Number of miscellaneous registers.
      */
-    Scoreboard(const std::string &_my_name, unsigned _numPhysicalRegs);
+    Scoreboard(const std::string &_my_name, unsigned _numPhysicalRegs,
+               RegIndex _zero_reg);
 
     /** Destructor. */
     ~Scoreboard() {}
@@ -82,27 +85,32 @@ class Scoreboard
     bool
     getReg(PhysRegIdPtr phys_reg) const
     {
+        assert(phys_reg->flatIndex() < numPhysRegs);
+
         if (phys_reg->isFixedMapping()) {
             // Fixed mapping regs are always ready
             return true;
         }
 
-        assert(phys_reg->flatIndex() < numPhysRegs);
+        bool ready = regScoreBoard[phys_reg->flatIndex()];
 
-        return regScoreBoard[phys_reg->flatIndex()];
+        if (phys_reg->is(IntRegClass) && phys_reg->index() == zeroReg)
+            assert(ready);
+
+        return ready;
     }
 
     /** Sets the register as ready. */
     void
     setReg(PhysRegIdPtr phys_reg)
     {
+        assert(phys_reg->flatIndex() < numPhysRegs);
+
         if (phys_reg->isFixedMapping()) {
             // Fixed mapping regs are always ready, ignore attempts to change
             // that
             return;
         }
-
-        assert(phys_reg->flatIndex() < numPhysRegs);
 
         DPRINTF(Scoreboard, "Setting reg %i (%s) as ready\n",
                 phys_reg->index(), phys_reg->className());
@@ -114,13 +122,17 @@ class Scoreboard
     void
     unsetReg(PhysRegIdPtr phys_reg)
     {
+        assert(phys_reg->flatIndex() < numPhysRegs);
+
         if (phys_reg->isFixedMapping()) {
             // Fixed mapping regs are always ready, ignore attempts to
             // change that
             return;
         }
 
-        assert(phys_reg->flatIndex() < numPhysRegs);
+        // zero reg should never be marked unready
+        if (phys_reg->is(IntRegClass) && phys_reg->index() == zeroReg)
+            return;
 
         regScoreBoard[phys_reg->flatIndex()] = false;
     }

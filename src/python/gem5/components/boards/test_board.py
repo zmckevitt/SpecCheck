@@ -32,7 +32,7 @@ from m5.objects import (
 
 from .mem_mode import MemMode, mem_mode_to_string
 from ...utils.override import overrides
-from .abstract_system_board import AbstractSystemBoard
+from .abstract_board import AbstractBoard
 from ..processors.abstract_processor import AbstractProcessor
 from ..memory.abstract_memory_system import AbstractMemorySystem
 from ..cachehierarchies.abstract_cache_hierarchy import AbstractCacheHierarchy
@@ -41,7 +41,7 @@ from ..cachehierarchies.abstract_cache_hierarchy import AbstractCacheHierarchy
 from typing import List
 
 
-class TestBoard(AbstractSystemBoard):
+class TestBoard(AbstractBoard):
 
     """This is a Testing Board used to run traffic generators on a simple
     architecture.
@@ -63,44 +63,44 @@ class TestBoard(AbstractSystemBoard):
             cache_hierarchy=cache_hierarchy,
         )
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def _setup_board(self) -> None:
         pass
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def has_io_bus(self) -> bool:
         return False
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def get_io_bus(self) -> IOXBar:
         raise NotImplementedError(
             "The TestBoard does not have an IO Bus. "
             "Use `has_io_bus()` to check this."
         )
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def get_dma_ports(self) -> List[Port]:
         return False
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def get_dma_ports(self) -> List[Port]:
         raise NotImplementedError(
             "The TestBoard does not have DMA Ports. "
             "Use `has_dma_ports()` to check this."
         )
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def has_coherent_io(self) -> bool:
         return False
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def get_mem_side_coherent_io_port(self):
         raise NotImplementedError(
             "SimpleBoard does not have any I/O ports. Use has_coherent_io to "
             "check this."
         )
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def _setup_memory_ranges(self) -> None:
         memory = self.get_memory()
 
@@ -109,6 +109,6 @@ class TestBoard(AbstractSystemBoard):
         self.mem_ranges = [AddrRange(memory.get_size())]
         memory.set_memory_range(self.mem_ranges)
 
-    @overrides(AbstractSystemBoard)
+    @overrides(AbstractBoard)
     def has_dma_ports(self) -> bool:
         return False

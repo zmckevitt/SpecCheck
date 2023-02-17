@@ -43,7 +43,7 @@ namespace gem5
 namespace X86ISA
 {
 
-class I8042 : public PioDevice
+class I8042 : public BasicPioDevice
 {
   protected:
     enum Command
@@ -98,25 +98,25 @@ class I8042 : public PioDevice
         Bitfield<0> keyboardFullInt;
     EndBitUnion(CommandByte)
 
-    Tick latency = 0;
-    Addr dataPort = 0;
-    Addr commandPort = 0;
+    Tick latency;
+    Addr dataPort;
+    Addr commandPort;
 
-    StatusReg statusReg = 0;
-    CommandByte commandByte = 0;
+    StatusReg statusReg;
+    CommandByte commandByte;
 
-    uint8_t dataReg = 0;
+    uint8_t dataReg;
 
-    static inline const uint16_t NoCommand = (uint16_t)(-1);
-    uint16_t lastCommand = NoCommand;
+    static const uint16_t NoCommand = (uint16_t)(-1);
+    uint16_t lastCommand;
 
     std::vector<IntSourcePin<I8042> *> mouseIntPin;
     std::vector<IntSourcePin<I8042> *> keyboardIntPin;
 
-    ps2::Device *mouse = nullptr;
-    ps2::Device *keyboard = nullptr;
+    ps2::Device *mouse;
+    ps2::Device *keyboard;
 
-    void writeData(uint8_t newData, bool mouse=false);
+    void writeData(uint8_t newData, bool mouse = false);
     uint8_t readDataOut();
 
   public:
@@ -132,7 +132,7 @@ class I8042 : public PioDevice
         else if (if_name == "keyboard_int_pin")
             return *keyboardIntPin.at(idx);
         else
-            return PioDevice::getPort(if_name, idx);
+            return BasicPioDevice::getPort(if_name, idx);
     }
 
     AddrRangeList getAddrRanges() const override;

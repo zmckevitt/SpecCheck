@@ -144,7 +144,7 @@ class System : public SimObject, public PCEventScope
             return threads[id];
         }
 
-        void insert(ThreadContext *tc);
+        void insert(ThreadContext *tc, ContextID id=InvalidContextID);
         void replace(ThreadContext *tc, ContextID id);
 
         friend class System;
@@ -334,13 +334,10 @@ class System : public SimObject, public PCEventScope
      * Get a pointer to the Kernel Virtual Machine (KVM) SimObject,
      * if present.
      */
-    KvmVM *getKvmVM() const { return kvmVM; }
+    KvmVM *getKvmVM() { return kvmVM; }
 
-    /**
-     * Set the pointer to the Kernel Virtual Machine (KVM) SimObject. For use
-     * by that object to declare itself to the system.
-     */
-    void setKvmVM(KvmVM *const vm) { kvmVM = vm; }
+    /** Verify gem5 configuration will support KVM emulation */
+    bool validKvmEnvironment() const;
 
     /** Get a pointer to access the physical memory of the system */
     memory::PhysicalMemory& getPhysMem() { return physmem; }
@@ -401,7 +398,7 @@ class System : public SimObject, public PCEventScope
 
   protected:
 
-    KvmVM *kvmVM = nullptr;
+    KvmVM *const kvmVM = nullptr;
 
     memory::PhysicalMemory physmem;
 
@@ -578,7 +575,8 @@ class System : public SimObject, public PCEventScope
 
   public:
 
-    void registerThreadContext(ThreadContext *tc);
+    void registerThreadContext(
+            ThreadContext *tc, ContextID assigned=InvalidContextID);
     void replaceThreadContext(ThreadContext *tc, ContextID context_id);
 
     void serialize(CheckpointOut &cp) const override;

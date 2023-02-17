@@ -58,7 +58,7 @@
 namespace gem5
 {
 
-struct BaseO3CPUParams;
+struct O3CPUParams;
 
 namespace o3
 {
@@ -125,7 +125,7 @@ class Rename
 
   public:
     /** Rename constructor. */
-    Rename(CPU *_cpu, const BaseO3CPUParams &params);
+    Rename(CPU *_cpu, const O3CPUParams &params);
 
     /** Returns the name of rename. */
     std::string name() const;

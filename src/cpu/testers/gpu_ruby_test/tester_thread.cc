@@ -152,37 +152,6 @@ TesterThread::issueNewEpisode()
     episodeHistory.push_back(curEpisode);
 }
 
-int
-TesterThread::getTokensNeeded()
-{
-    if (!tokenPort) {
-        return 0;
-    }
-
-    int tokens_needed = 0;
-    curAction = curEpisode->peekCurAction();
-
-    switch(curAction->getType()) {
-        case Episode::Action::Type::ATOMIC:
-            tokens_needed = numLanes;
-            break;
-        case Episode::Action::Type::LOAD:
-        case Episode::Action::Type::STORE:
-            for (int lane = 0; lane < numLanes; ++lane) {
-                Location loc = curAction->getLocation(lane);
-
-                if (loc != AddressManager::INVALID_LOCATION && loc >= 0) {
-                    tokens_needed++;
-                }
-            }
-            break;
-        default:
-            tokens_needed = 0;
-    }
-
-    return tokens_needed;
-}
-
 bool
 TesterThread::isNextActionReady()
 {
@@ -193,13 +162,10 @@ TesterThread::isNextActionReady()
 
         // Only GPU wavefront threads have a token port. For all other types
         // of threads evaluate to true.
-        bool haveTokens = true;
+        bool haveTokens = tokenPort ? tokenPort->haveTokens(numLanes) : true;
 
         switch(curAction->getType()) {
             case Episode::Action::Type::ATOMIC:
-                haveTokens = tokenPort ?
-                    tokenPort->haveTokens(getTokensNeeded()) : true;
-
                 // an atomic action must wait for all previous requests
                 // to complete
                 if (pendingLdStCount == 0 &&
@@ -240,7 +206,7 @@ TesterThread::isNextActionReady()
                 assert(pendingAtomicCount == 0);
 
                 // can't issue if there is a pending fence
-                if (pendingFenceCount > 0) {
+                if (pendingFenceCount > 0 || !haveTokens) {
                     return false;
                 }
 
@@ -249,7 +215,7 @@ TesterThread::isNextActionReady()
                 for (int lane = 0; lane < numLanes; ++lane) {
                     Location loc = curAction->getLocation(lane);
 
-                    if (loc != AddressManager::INVALID_LOCATION && loc >= 0) {
+                    if (loc != AddressManager::INVALID_LOCATION) {
                         Addr addr = addrManager->getAddress(loc);
 
                         if (outstandingLoads.find(addr) !=
@@ -271,12 +237,6 @@ TesterThread::isNextActionReady()
                     }
                 }
 
-                haveTokens = tokenPort ?
-                    tokenPort->haveTokens(getTokensNeeded()) : true;
-                if (!haveTokens) {
-                    return false;
-                }
-
                 return true;
             default:
                 panic("The tester got an invalid action\n");
@@ -290,7 +250,7 @@ TesterThread::issueNextAction()
     switch(curAction->getType()) {
         case Episode::Action::Type::ATOMIC:
             if (tokenPort) {
-                tokenPort->acquireTokens(getTokensNeeded());
+                tokenPort->acquireTokens(numLanes);
             }
             issueAtomicOps();
             break;
@@ -302,13 +262,13 @@ TesterThread::issueNextAction()
             break;
         case Episode::Action::Type::LOAD:
             if (tokenPort) {
-                tokenPort->acquireTokens(getTokensNeeded());
+                tokenPort->acquireTokens(numLanes);
             }
             issueLoadOps();
             break;
         case Episode::Action::Type::STORE:
             if (tokenPort) {
-                tokenPort->acquireTokens(getTokensNeeded());
+                tokenPort->acquireTokens(numLanes);
             }
             issueStoreOps();
             break;

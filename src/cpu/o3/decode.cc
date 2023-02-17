@@ -49,8 +49,7 @@
 #include "debug/Activity.hh"
 #include "debug/Decode.hh"
 #include "debug/O3PipeView.hh"
-#include "debug/SpecCheck.hh"
-#include "params/BaseO3CPU.hh"
+#include "params/O3CPU.hh"
 #include "sim/full_system.hh"
 
 // clang complains about std::set being overloaded with Packet::set if
@@ -63,7 +62,7 @@ namespace gem5
 namespace o3
 {
 
-Decode::Decode(CPU *_cpu, const BaseO3CPUParams &params)
+Decode::Decode(CPU *_cpu, const O3CPUParams &params)
     : cpu(_cpu),
       renameToDecodeDelay(params.renameToDecodeDelay),
       iewToDecodeDelay(params.iewToDecodeDelay),
@@ -689,7 +688,7 @@ Decode::decodeInsts(ThreadID tid)
         --insts_available;
 
 #if TRACING_ON
-        if (debug::O3PipeView || debug::SpecCheck) {
+        if (debug::O3PipeView) {
             inst->decodeTick = curTick() - inst->fetchTick;
         }
 #endif

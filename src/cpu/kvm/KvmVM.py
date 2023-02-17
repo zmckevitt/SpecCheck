@@ -45,5 +45,3 @@ class KvmVM(SimObject):
 
     coalescedMMIO = \
       VectorParam.AddrRange([], "memory ranges for coalesced MMIO")
-
-    system = Param.System(Parent.any, "system this VM belongs to")

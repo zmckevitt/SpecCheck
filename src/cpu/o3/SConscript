@@ -30,17 +30,16 @@ import sys
 
 Import('*')
 
-if env['CONF']['TARGET_ISA'] != 'null':
+if 'O3CPU' in env['CPU_MODELS']:
     SimObject('FUPool.py', sim_objects=['FUPool'])
     SimObject('FuncUnitConfig.py', sim_objects=[])
-    SimObject('BaseO3CPU.py', sim_objects=['BaseO3CPU'], enums=[
+    SimObject('O3CPU.py', sim_objects=['O3CPU'], enums=[
         'SMTFetchPolicy', 'SMTQueuePolicy', 'CommitPolicy'])
 
     Source('commit.cc')
     Source('cpu.cc')
     Source('decode.cc')
     Source('dyn_inst.cc')
-    Source('SpecCheck.cc')
     Source('fetch.cc')
     Source('free_list.cc')
     Source('fu_pool.cc')
@@ -75,5 +74,5 @@ if env['CONF']['TARGET_ISA'] != 'null':
         'IQ', 'ROB', 'FreeList', 'LSQ', 'LSQUnit', 'StoreSet', 'MemDepUnit',
         'DynInst', 'O3CPU', 'Activity', 'Scoreboard', 'Writeback' ])
 
-    SimObject('BaseO3Checker.py', sim_objects=['BaseO3Checker'])
+    SimObject('O3Checker.py', sim_objects=['O3Checker'])
     Source('checker.cc')

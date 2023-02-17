@@ -50,6 +50,11 @@
 #include "base/str.hh"
 #include "base/trace.hh"
 #include "config/the_isa.hh"
+#include "config/use_kvm.hh"
+#if USE_KVM
+#include "cpu/kvm/base.hh"
+#include "cpu/kvm/vm.hh"
+#endif
 #if !IS_NULL_ISA
 #include "cpu/base.hh"
 #endif
@@ -95,18 +100,31 @@ System::Threads::Thread::quiesce() const
 }
 
 void
-System::Threads::insert(ThreadContext *tc)
+System::Threads::insert(ThreadContext *tc, ContextID id)
 {
-    ContextID id = size();
+    if (id == InvalidContextID) {
+        for (id = 0; id < size(); id++) {
+            if (!threads[id].context)
+                break;
+        }
+    }
+
     tc->setContextId(id);
 
-    auto &t = threads.emplace_back();
+    if (id >= size())
+        threads.resize(id + 1);
+
+    fatal_if(threads[id].context,
+            "Cannot have two thread contexts with the same id (%d).", id);
+
+    auto *sys = tc->getSystemPtr();
+
+    auto &t = thread(id);
     t.context = tc;
     // Look up this thread again on resume, in case the threads vector has
     // been reallocated.
     t.resumeEvent = new EventFunctionWrapper(
-            [this, id](){ thread(id).resume(); },
-            tc->getSystemPtr()->name());
+            [this, id](){ thread(id).resume(); }, sys->name());
 }
 
 void
@@ -181,8 +199,11 @@ System::System(const Params &p)
       init_param(p.init_param),
       physProxy(_systemPort, p.cache_line_size),
       workload(p.workload),
+#if USE_KVM
+      kvmVM(p.kvm_vm),
+#endif
       physmem(name() + ".physmem", p.memories, p.mmap_using_noreserve,
-              p.shared_backstore, p.auto_unlink_shared_backstore),
+              p.shared_backstore),
       ShadowRomRanges(p.shadow_rom_ranges.begin(),
                       p.shadow_rom_ranges.end()),
       memoryMode(p.mem_mode),
@@ -200,6 +221,12 @@ System::System(const Params &p)
 
     // add self to global system list
     systemList.push_back(this);
+
+#if USE_KVM
+    if (kvmVM) {
+        kvmVM->setSystem(this);
+    }
+#endif
 
     // check if the cache line size is a value known to work
     if (_cacheLineSize != 16 && _cacheLineSize != 32 &&
@@ -245,9 +272,9 @@ System::setMemoryMode(enums::MemoryMode mode)
 }
 
 void
-System::registerThreadContext(ThreadContext *tc)
+System::registerThreadContext(ThreadContext *tc, ContextID assigned)
 {
-    threads.insert(tc);
+    threads.insert(tc, assigned);
 
     workload->registerThreadContext(tc);
 
@@ -287,6 +314,24 @@ System::replaceThreadContext(ThreadContext *tc, ContextID context_id)
         otc->remove(e);
         tc->schedule(e);
     }
+}
+
+bool
+System::validKvmEnvironment() const
+{
+#if USE_KVM
+    if (threads.empty())
+        return false;
+
+    for (auto *tc: threads) {
+        if (!dynamic_cast<BaseKvmCPU *>(tc->getCpuPtr()))
+            return false;
+    }
+
+    return true;
+#else
+    return false;
+#endif
 }
 
 Addr

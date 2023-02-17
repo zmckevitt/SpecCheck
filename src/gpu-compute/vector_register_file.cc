@@ -48,7 +48,7 @@ namespace gem5
 VectorRegisterFile::VectorRegisterFile(const VectorRegisterFileParams &p)
     : RegisterFile(p)
 {
-    regFile.resize(numRegs());
+    regFile.resize(numRegs(), VecRegContainer());
 
     for (auto &reg : regFile) {
         reg.zero();

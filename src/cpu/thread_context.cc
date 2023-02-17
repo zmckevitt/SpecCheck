@@ -41,8 +41,6 @@
 
 #include "cpu/thread_context.hh"
 
-#include <vector>
-
 #include "arch/generic/vec_pred_reg.hh"
 #include "base/logging.hh"
 #include "base/trace.hh"
@@ -65,7 +63,7 @@ ThreadContext::compare(ThreadContext *one, ThreadContext *two)
     DPRINTF(Context, "Comparing thread contexts\n");
 
     // First loop through the integer registers.
-    for (int i = 0; i < regClasses.at(IntRegClass).numRegs(); ++i) {
+    for (int i = 0; i < regClasses.at(IntRegClass).size(); ++i) {
         RegVal t1 = one->readIntReg(i);
         RegVal t2 = two->readIntReg(i);
         if (t1 != t2)
@@ -74,7 +72,7 @@ ThreadContext::compare(ThreadContext *one, ThreadContext *two)
     }
 
     // Then loop through the floating point registers.
-    for (int i = 0; i < regClasses.at(FloatRegClass).numRegs(); ++i) {
+    for (int i = 0; i < regClasses.at(FloatRegClass).size(); ++i) {
         RegVal t1 = one->readFloatReg(i);
         RegVal t2 = two->readFloatReg(i);
         if (t1 != t2)
@@ -83,38 +81,26 @@ ThreadContext::compare(ThreadContext *one, ThreadContext *two)
     }
 
     // Then loop through the vector registers.
-    const auto &vec_class = regClasses.at(VecRegClass);
-    std::vector<uint8_t> vec1(vec_class.regBytes());
-    std::vector<uint8_t> vec2(vec_class.regBytes());
-    for (int i = 0; i < vec_class.numRegs(); ++i) {
+    for (int i = 0; i < regClasses.at(VecRegClass).size(); ++i) {
         RegId rid(VecRegClass, i);
-
-        one->getReg(rid, vec1.data());
-        two->getReg(rid, vec2.data());
-        if (vec1 != vec2) {
+        const TheISA::VecRegContainer& t1 = one->readVecReg(rid);
+        const TheISA::VecRegContainer& t2 = two->readVecReg(rid);
+        if (t1 != t2)
             panic("Vec reg idx %d doesn't match, one: %#x, two: %#x",
-                  i, vec_class.valString(vec1.data()),
-                  vec_class.valString(vec2.data()));
-        }
+                  i, t1, t2);
     }
 
     // Then loop through the predicate registers.
-    const auto &vec_pred_class = regClasses.at(VecPredRegClass);
-    std::vector<uint8_t> pred1(vec_pred_class.regBytes());
-    std::vector<uint8_t> pred2(vec_pred_class.regBytes());
-    for (int i = 0; i < vec_pred_class.numRegs(); ++i) {
+    for (int i = 0; i < regClasses.at(VecPredRegClass).size(); ++i) {
         RegId rid(VecPredRegClass, i);
-
-        one->getReg(rid, pred1.data());
-        two->getReg(rid, pred2.data());
-        if (pred1 != pred2) {
-            panic("Pred reg idx %d doesn't match, one: %s, two: %s",
-                  i, vec_pred_class.valString(pred1.data()),
-                  vec_pred_class.valString(pred2.data()));
-        }
+        const TheISA::VecPredRegContainer& t1 = one->readVecPredReg(rid);
+        const TheISA::VecPredRegContainer& t2 = two->readVecPredReg(rid);
+        if (t1 != t2)
+            panic("Pred reg idx %d doesn't match, one: %#x, two: %#x",
+                  i, t1, t2);
     }
 
-    for (int i = 0; i < regClasses.at(MiscRegClass).numRegs(); ++i) {
+    for (int i = 0; i < regClasses.at(MiscRegClass).size(); ++i) {
         RegVal t1 = one->readMiscRegNoEffect(i);
         RegVal t2 = two->readMiscRegNoEffect(i);
         if (t1 != t2)
@@ -123,7 +109,7 @@ ThreadContext::compare(ThreadContext *one, ThreadContext *two)
     }
 
     // loop through the Condition Code registers.
-    for (int i = 0; i < regClasses.at(CCRegClass).numRegs(); ++i) {
+    for (int i = 0; i < regClasses.at(CCRegClass).size(); ++i) {
         RegVal t1 = one->readCCReg(i);
         RegVal t2 = two->readCCReg(i);
         if (t1 != t2)
@@ -167,50 +153,6 @@ ThreadContext::quiesceTick(Tick resume)
     getSystemPtr()->threads.quiesceTick(contextId(), resume);
 }
 
-RegVal
-ThreadContext::getReg(const RegId &reg) const
-{
-    return getRegFlat(flattenRegId(reg));
-}
-
-void *
-ThreadContext::getWritableReg(const RegId &reg)
-{
-    return getWritableRegFlat(flattenRegId(reg));
-}
-
-void
-ThreadContext::setReg(const RegId &reg, RegVal val)
-{
-    setRegFlat(flattenRegId(reg), val);
-}
-
-void
-ThreadContext::getReg(const RegId &reg, void *val) const
-{
-    getRegFlat(flattenRegId(reg), val);
-}
-
-void
-ThreadContext::setReg(const RegId &reg, const void *val)
-{
-    setRegFlat(flattenRegId(reg), val);
-}
-
-RegVal
-ThreadContext::getRegFlat(const RegId &reg) const
-{
-    RegVal val;
-    getRegFlat(reg, &val);
-    return val;
-}
-
-void
-ThreadContext::setRegFlat(const RegId &reg, RegVal val)
-{
-    setRegFlat(reg, &val);
-}
-
 void
 serialize(const ThreadContext &tc, CheckpointOut &cp)
 {
@@ -219,7 +161,7 @@ serialize(const ThreadContext &tc, CheckpointOut &cp)
     auto &nc_tc = const_cast<ThreadContext &>(tc);
     const auto &regClasses = nc_tc.getIsaPtr()->regClasses();
 
-    const size_t numFloats = regClasses.at(FloatRegClass).numRegs();
+    const size_t numFloats = regClasses.at(FloatRegClass).size();
     RegVal floatRegs[numFloats];
     for (int i = 0; i < numFloats; ++i)
         floatRegs[i] = tc.readFloatRegFlat(i);
@@ -227,27 +169,27 @@ serialize(const ThreadContext &tc, CheckpointOut &cp)
     // compatibility.
     arrayParamOut(cp, "floatRegs.i", floatRegs, numFloats);
 
-    const size_t numVecs = regClasses.at(VecRegClass).numRegs();
+    const size_t numVecs = regClasses.at(VecRegClass).size();
     std::vector<TheISA::VecRegContainer> vecRegs(numVecs);
     for (int i = 0; i < numVecs; ++i) {
         vecRegs[i] = tc.readVecRegFlat(i);
     }
     SERIALIZE_CONTAINER(vecRegs);
 
-    const size_t numPreds = regClasses.at(VecPredRegClass).numRegs();
+    const size_t numPreds = regClasses.at(VecPredRegClass).size();
     std::vector<TheISA::VecPredRegContainer> vecPredRegs(numPreds);
     for (int i = 0; i < numPreds; ++i) {
-        tc.getRegFlat(RegId(VecPredRegClass, i), &vecPredRegs[i]);
+        vecPredRegs[i] = tc.readVecPredRegFlat(i);
     }
     SERIALIZE_CONTAINER(vecPredRegs);
 
-    const size_t numInts = regClasses.at(IntRegClass).numRegs();
+    const size_t numInts = regClasses.at(IntRegClass).size();
     RegVal intRegs[numInts];
     for (int i = 0; i < numInts; ++i)
         intRegs[i] = tc.readIntRegFlat(i);
     SERIALIZE_ARRAY(intRegs, numInts);
 
-    const size_t numCcs = regClasses.at(CCRegClass).numRegs();
+    const size_t numCcs = regClasses.at(CCRegClass).size();
     if (numCcs) {
         RegVal ccRegs[numCcs];
         for (int i = 0; i < numCcs; ++i)
@@ -265,7 +207,7 @@ unserialize(ThreadContext &tc, CheckpointIn &cp)
 {
     const auto &regClasses = tc.getIsaPtr()->regClasses();
 
-    const size_t numFloats = regClasses.at(FloatRegClass).numRegs();
+    const size_t numFloats = regClasses.at(FloatRegClass).size();
     RegVal floatRegs[numFloats];
     // This is a bit ugly, but needed to maintain backwards
     // compatibility.
@@ -273,27 +215,27 @@ unserialize(ThreadContext &tc, CheckpointIn &cp)
     for (int i = 0; i < numFloats; ++i)
         tc.setFloatRegFlat(i, floatRegs[i]);
 
-    const size_t numVecs = regClasses.at(VecRegClass).numRegs();
+    const size_t numVecs = regClasses.at(VecRegClass).size();
     std::vector<TheISA::VecRegContainer> vecRegs(numVecs);
     UNSERIALIZE_CONTAINER(vecRegs);
     for (int i = 0; i < numVecs; ++i) {
         tc.setVecRegFlat(i, vecRegs[i]);
     }
 
-    const size_t numPreds = regClasses.at(VecPredRegClass).numRegs();
+    const size_t numPreds = regClasses.at(VecPredRegClass).size();
     std::vector<TheISA::VecPredRegContainer> vecPredRegs(numPreds);
     UNSERIALIZE_CONTAINER(vecPredRegs);
     for (int i = 0; i < numPreds; ++i) {
-        tc.setRegFlat(RegId(VecPredRegClass, i), &vecPredRegs[i]);
+        tc.setVecPredRegFlat(i, vecPredRegs[i]);
     }
 
-    const size_t numInts = regClasses.at(IntRegClass).numRegs();
+    const size_t numInts = regClasses.at(IntRegClass).size();
     RegVal intRegs[numInts];
     UNSERIALIZE_ARRAY(intRegs, numInts);
     for (int i = 0; i < numInts; ++i)
         tc.setIntRegFlat(i, intRegs[i]);
 
-    const size_t numCcs = regClasses.at(CCRegClass).numRegs();
+    const size_t numCcs = regClasses.at(CCRegClass).size();
     if (numCcs) {
         RegVal ccRegs[numCcs];
         UNSERIALIZE_ARRAY(ccRegs, numCcs);

@@ -187,12 +187,6 @@ BitUnion8(OperatingMode)
     Bitfield<2,0> submode;
 EndBitUnion(OperatingMode)
 
-BitUnion8(OperatingModeAndCPL)
-    Bitfield<5,4> cpl;
-    Bitfield<3> mode;
-    Bitfield<2,0> submode;
-EndBitUnion(OperatingModeAndCPL)
-
 enum X86Mode
 {
     LongMode,
@@ -242,7 +236,7 @@ struct ExtMachInst
     uint8_t dispSize;
 
     //Mode information
-    OperatingModeAndCPL mode;
+    OperatingMode mode;
 };
 
 inline static std::ostream &

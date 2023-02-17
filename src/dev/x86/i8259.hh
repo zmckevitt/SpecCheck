@@ -43,8 +43,8 @@ namespace X86ISA
 class I8259 : public BasicPioDevice
 {
   protected:
-    static const inline int NumLines = 8;
-    bool pinStates[NumLines] = {};
+    static const int NumLines = 8;
+    bool pinStates[NumLines];
 
     void init() override;
 
@@ -52,38 +52,36 @@ class I8259 : public BasicPioDevice
     std::vector<IntSourcePin<I8259> *> output;
     std::vector<IntSinkPin<I8259> *> inputs;
     enums::X86I8259CascadeMode mode;
-    I8259 *slave = nullptr;
+    I8259 *slave;
 
     // Interrupt Request Register
-    uint8_t IRR = 0;
+    uint8_t IRR;
     // In Service Register
-    uint8_t ISR = 0;
+    uint8_t ISR;
     // Interrupt Mask Register
-    uint8_t IMR = 0;
+    uint8_t IMR;
 
     // The higher order bits of the vector to return
-    uint8_t vectorOffset = 0;
+    uint8_t vectorOffset;
 
-    bool cascadeMode = false;
+    bool cascadeMode;
     // A bit vector of lines with responders attached, or the
     // responder id, depending
     // on if this is a requestor or responder PIC.
-    uint8_t cascadeBits = 0;
+    uint8_t cascadeBits;
 
-    bool edgeTriggered = true;
-    bool readIRR = true;
+    bool edgeTriggered;
+    bool readIRR;
 
     // State machine information for reading in initialization control words.
-    bool expectICW4 = false;
-    int initControlWord = 0;
+    bool expectICW4;
+    int initControlWord;
 
     // Whether or not the PIC is in auto EOI mode.
-    bool autoEOI = false;
+    bool autoEOI;
 
     void requestInterrupt(int line);
     void handleEOI(int line);
-
-    int getVector();
 
   public:
     using Params = I8259Params;
@@ -100,8 +98,6 @@ class I8259 : public BasicPioDevice
         else
             return BasicPioDevice::getPort(if_name, idx);
     }
-
-    AddrRangeList getAddrRanges() const override;
 
     Tick read(PacketPtr pkt) override;
     Tick write(PacketPtr pkt) override;
@@ -121,6 +117,7 @@ class I8259 : public BasicPioDevice
     void signalInterrupt(int line);
     void raiseInterruptPin(int number);
     void lowerInterruptPin(int number);
+    int getVector();
 
     void serialize(CheckpointOut &cp) const override;
     void unserialize(CheckpointIn &cp) override;

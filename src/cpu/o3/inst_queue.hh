@@ -64,7 +64,7 @@
 namespace gem5
 {
 
-struct BaseO3CPUParams;
+struct O3CPUParams;
 
 namespace memory
 {
@@ -130,8 +130,7 @@ class InstructionQueue
     };
 
     /** Constructs an IQ. */
-    InstructionQueue(CPU *cpu_ptr, IEW *iew_ptr,
-            const BaseO3CPUParams &params);
+    InstructionQueue(CPU *cpu_ptr, IEW *iew_ptr, const O3CPUParams &params);
 
     /** Destructs the IQ. */
     ~InstructionQueue();

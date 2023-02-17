@@ -40,10 +40,10 @@
 
 Import('*')
 
-if env['CONF']['TARGET_ISA'] != 'null':
-    SimObject('BaseMinorCPU.py', sim_objects=[
+if 'MinorCPU' in env['CPU_MODELS']:
+    SimObject('MinorCPU.py', sim_objects=[
         'MinorOpClass', 'MinorOpClassSet', 'MinorFUTiming', 'MinorFU',
-        'MinorFUPool', 'BaseMinorCPU'],
+        'MinorFUPool', 'MinorCPU'],
         enums=['ThreadPolicy'])
 
     Source('activity.cc')

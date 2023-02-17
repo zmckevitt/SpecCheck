@@ -128,26 +128,9 @@ PS2Keyboard::recv(const std::vector<uint8_t> &data)
             return true;
         }
       case keyboard::DiagnosticEcho:
-        send(keyboard::DiagnosticEcho);
-        return true;
+        panic("Keyboard diagnostic echo unimplemented.\n");
       case keyboard::AlternateScanCodes:
-        if (data.size() == 1) {
-            DPRINTF(PS2, "Got scan code set command.\n");
-            sendAck();
-            return false;
-        } else {
-            sendAck();
-            uint8_t scan_code = data[1];
-            if (scan_code == 0) {
-                DPRINTF(PS2, "Sending hard coded current scan code set 2.\n");
-                send(0x2);
-            } else {
-                DPRINTF(PS2, "Setting scan code set to %d.\n", scan_code);
-                panic_if(scan_code != 0x2,
-                        "PS/2 scan code set %d not supported.", scan_code);
-            }
-        }
-        return true;
+        panic("Accessing alternate scan codes unimplemented.\n");
       case keyboard::TypematicInfo:
         if (data.size() == 1) {
             DPRINTF(PS2, "Setting typematic info.\n");
