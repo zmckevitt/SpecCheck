@@ -431,11 +431,33 @@ decode QUADRANT default Unknown::unknown() {
         }
 
         0x03: decode FUNCT3 {
+
             format FenceOp {
                 0x0: fence({{
                 }}, uint64_t, IsReadBarrier, IsWriteBarrier, No_OpClass);
                 0x1: fence_i({{
                 }}, uint64_t, IsNonSpeculative, IsSerializeAfter, No_OpClass);
+            }
+            
+            // FUNCT12 defined in bitfields
+            // System type, could also do IMM12 for I type
+            // Might have to change DST_POC to rs1 somehow
+            0x2: decode FUNCT12 {
+                // Cache Block Management Operations
+                format CBMOp {
+                    0x1: cbo_clean({{
+                        Mem = 0;
+                    }}, mem_flags=[CLEAN, DST_POC]);
+                    0x2: cbo_flush({{
+                        Mem = 0;
+                    }}, mem_flags=[CLEAN, INVALIDATE, DST_POC]);
+                    0x3: cbo_inval({{
+                        Mem = 0;
+                    }}, mem_flags=[INVALIDATE, DST_POC]);
+                    0x4: cbo_zero({{
+                        Mem = 0;
+                    }}, mem_flags=[CACHE_BLOCK_ZERO]);
+                }
             }
         }
 
