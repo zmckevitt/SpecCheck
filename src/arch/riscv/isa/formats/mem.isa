@@ -244,14 +244,6 @@ def format Store(memacc_code, ea_code={{EA = Rs1 + offset;}},
         inst_flags, 'Store', exec_template_base='Store')
 }};
 
-// Check src/arch/arm/isa/insts/data64.isa
-
-    // ea_code = '''
-    //     EA = Rs1;
-    //     System *sys = xc->tcBase()->getSystemPtr();
-    //     Addr op_size = sys->cacheLineSize();
-    //     EA &= ~(op_size - 1);
-    // '''
 def format CBMOp(memacc_code, ea_code={{EA = Rs1 + offset;}},
         offset_code={{offset = 0;}},
         mem_flags=[], inst_flags=[]) {{
