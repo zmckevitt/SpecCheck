@@ -27,6 +27,9 @@ enum fsmStates
         Q_ACC
 };
 
+void encountered_main(unsigned long long addr,
+                      size_t size);
+
 int consume_instruction(std::string inst,
                         unsigned long long PC,
                         bool commit,

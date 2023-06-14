@@ -1,4 +1,7 @@
 #include "cpu/o3/SpecCheck.hh"
+
+#include <climits>
+
 #include "debug/SpecCheck.hh"
 
 namespace gem5 {
@@ -11,9 +14,14 @@ int numUniqFlushed = 0; // Non vulnerable
 int numVulnerable = 0;
 int numUniqVulnerable = 0;
 
+// STATE
 int currentFsmState = Q_INIT;
 unsigned long long savedPC;
+unsigned long long mainStart = ULLONG_MAX;
+unsigned long long mainEnd = 0;
+bool inMain = false;
 
+// TABLES
 std::vector<unsigned long long>flushed_pcs;
 std::vector<unsigned long long>vuln_pcs;
 std::vector<PhysRegIdPtr>taint_table;
@@ -45,6 +53,12 @@ int is_load(StaticInstPtr staticInst) {
     return staticInst->isLoad();
 }
 
+void encountered_main(unsigned long long addr, size_t size) {
+    mainStart = addr;
+    mainEnd = mainStart + size;
+    printf("Main found! Start: 0x%08llx, End: 0x%08llx\n", mainStart, mainEnd);
+}
+
 int is_micro_visible(StaticInstPtr staticInst) {
     return (staticInst->isLoad() ||
             staticInst->isStore() ||
@@ -62,6 +76,17 @@ int consume_instruction(std::string inst,
             bool complete,
             StaticInstPtr staticInst,
             DynInstPtr dynInst) {
+
+    // Only run if we have started the main fn
+    if (PC == mainStart) {
+        inMain = true;
+    }
+    if (inMain && (PC == mainEnd || PC == mainEnd - 1)) {
+        inMain = false;
+    }
+    if (!inMain || staticInst->isNop()) {
+        return 0;
+    }
 
     size_t numSrcs = dynInst->numSrcs();
     size_t numDsts = dynInst->numDests();
@@ -92,6 +117,7 @@ int consume_instruction(std::string inst,
                 // check if flushed window is unique
                 if (!in_flushed(savedPC)) {
                     flushed_pcs.push_back(savedPC);
+                    numUniqFlushed = flushed_pcs.size();
                 }
 
                 // Completed memroy load
