@@ -11,16 +11,11 @@ namespace gem5 {
 
 namespace o3 {
 
-extern int numFlushedWindows;
-extern int numVulnWindows;
-extern int numUniqWindows;
+extern int numFlushed;
+extern int numUniqFlushed;
+extern int numVulnerable;
+extern int numUniqVulnerable;
 extern int currentFsmState;
-
-// I believe we can delete these...
-// Although we could add savedPCs as a Stats::vector in commit
-// Make PCs private!
-extern unsigned long long savedPC;
-extern std::vector<unsigned long long>PCs;
 
 enum fsmStates
 {

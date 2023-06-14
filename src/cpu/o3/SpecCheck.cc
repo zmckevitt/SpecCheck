@@ -5,33 +5,54 @@ namespace gem5 {
 
 namespace o3 {
 
-int numFlushedWindows = 0;
-int numVulnWindows = 0;
-int numUniqWindows = 0;
+// STATS
+int numFlushed = 0;
+int numUniqFlushed = 0; // Non vulnerable
+int numVulnerable = 0;
+int numUniqVulnerable = 0;
+
 int currentFsmState = Q_INIT;
-unsigned long long savedPC = -1;
-std::vector<unsigned long long>PCs;
-std::vector<PhysRegIdPtr>registers;
+unsigned long long savedPC;
 
-int in_destination_array(PhysRegIdPtr reg) {
-    return (std::find(registers.begin(), registers.end(), reg)
-             != registers.end());
+std::vector<unsigned long long>flushed_pcs;
+std::vector<unsigned long long>vuln_pcs;
+std::vector<PhysRegIdPtr>taint_table;
+
+int in_flushed(unsigned long long pc) {
+    return (std::find(flushed_pcs.begin(), flushed_pcs.end(), pc)
+             != flushed_pcs.end());
 }
 
-void set_destination(PhysRegIdPtr reg) {
-    registers.push_back(reg);
+int in_vulnerable(unsigned long long pc) {
+    return (std::find(vuln_pcs.begin(), vuln_pcs.end(), pc)
+             != vuln_pcs.end());
 }
 
-int register_array_empty() {
-    return registers.empty();
+int in_taint_table(PhysRegIdPtr reg) {
+    return (std::find(taint_table.begin(), taint_table.end(), reg)
+             != taint_table.end());
 }
 
-void clear_register_array() {
-    registers.clear();
+void set_taint(PhysRegIdPtr reg) {
+    taint_table.push_back(reg);
 }
 
-int is_memory_op(StaticInstPtr staticInst) {
+void clear_taint_table() {
+    taint_table.clear();
+}
+
+int is_load(StaticInstPtr staticInst) {
     return staticInst->isLoad();
+}
+
+int is_micro_visible(StaticInstPtr staticInst) {
+    return (staticInst->isLoad() ||
+            staticInst->isStore() ||
+            staticInst->isFloating() ||
+            staticInst->isControl() ||
+            staticInst->isCall() ||
+            staticInst->isReturn() ||
+            staticInst->isCondCtrl());
 }
 
 int consume_instruction(std::string inst,
@@ -59,18 +80,23 @@ int consume_instruction(std::string inst,
     }
 
     if (currentFsmState == Q_INIT) {
-        clear_register_array();
+        clear_taint_table();
         savedPC = -1;
 
             // beginning of misspeculation window
             if (commit == 0) {
 
                 savedPC = PC;
-                numFlushedWindows++;
+                numFlushed++;
+
+                // check if flushed window is unique
+                if (!in_flushed(savedPC)) {
+                    flushed_pcs.push_back(savedPC);
+                }
 
                 // Completed memroy load
-                if (is_memory_op(staticInst) && complete != 0 && dest != 0) {
-                        set_destination(dest);
+                if (is_load(staticInst) && complete != 0 && dest != 0) {
+                        set_taint(dest);
                         currentFsmState = Q_2;
                 }
                 // Non completed memory load or non memory operation
@@ -93,8 +119,8 @@ int consume_instruction(std::string inst,
             // If completed memory inst:
             // add destination register to register array
             // goto Q_2
-            if (is_memory_op(staticInst) && complete != 0 && dest != 0) {
-                set_destination(dest);
+            if (is_load(staticInst) && complete != 0 && dest != 0) {
+                set_taint(dest);
                 currentFsmState = Q_2;
             }
             // Any other flushed instruction does not change state
@@ -109,72 +135,33 @@ int consume_instruction(std::string inst,
         }
         // Flushed instruction
         else {
-            // Check if inst executes and uses a tainted source
-            if (issue != 0 && src1 != 0 && in_destination_array(src1)) {
-                // Propogate taint to destiation register if inst completes
-                if (complete != 0)
-                    set_destination(src1);
-                currentFsmState = Q_3;
-            }
-            // Check both source registers, adding both to list
-            if (issue != 0 && src2 != 0 && in_destination_array(src2)) {
-                // Propogate taint to destiation register if inst completes
-                if (complete != 0)
-                    set_destination(src2);
-                currentFsmState = Q_3;
-            }
-            // If memory operation completes
-            // Add destination to dest register
-            // Remain in state, regardless of tainted sources
-            if (is_memory_op(staticInst) && complete != 0 && dest != 0) {
-                set_destination(dest);
-                currentFsmState = Q_2;
-            }
-            // Otherwise do nothing and remain in state Q_2
-        }
-    }
-
-    else if (currentFsmState == Q_3) {
-        // Retired instruction
-        if (commit != 0) {
-            if (PC == savedPC) {
-                currentFsmState = Q_INIT;
-            }
-            // PC != SavedPC
-            else {
+            // If instruction is micro visible and either of
+            // its sources are in the taint table, goto accept
+            if (issue!= 0 && is_micro_visible(staticInst) &&
+               ((src1 != 0 && in_taint_table(src1)) ||
+               (src2 != 0 && in_taint_table(src2)))) {
                 currentFsmState = Q_ACC;
             }
-        }
-        // Flushed instruction
-        else {
-            if (issue != 0 && src1 != 0 && in_destination_array(src1)) {
-                if (complete != 0)
-                    set_destination(src1);
-            }
-            if (issue != 0 && src2 != 0 && in_destination_array(src2)) {
-                if (complete != 0)
-                    set_destination(src2);
-            }
-            if (is_memory_op(staticInst) && complete != 0 && dest != 0) {
-                set_destination(dest);
+            // If instruction is a load OR either of its
+            // sources are in the taint table but the instruction
+            // is not micro visible, add the destination to the
+            // taint table
+            else if (issue != 0 && (is_load(staticInst) ||
+                    (src1 != 0 && in_taint_table(src1)) ||
+                    (src2 != 0 && in_taint_table(src2)))) {
+                set_taint(dest);
             }
         }
-
     }
 
-
     if (currentFsmState == Q_ACC) {
-        numVulnWindows++;
+        numVulnerable++;
         // Check if misspeculated window is not already in list
-        if (std::find(PCs.begin(), PCs.end(), savedPC) == PCs.end()) {
-            PCs.push_back(savedPC);
-            numUniqWindows = PCs.size();
-            // printf("Vulnerable speculative code found!\n");
-            // printf("Misspeculation window beginning at \
-            //             0x%08llx is vulnerable!\n",savedPC);
-            // printf("Total number of malicious windows: %d/%d (total)\n",
-            //         numVulnWindows, numFlushedWindows);
-            // printf("Unique PCs: %ld\n", PCs.size());
+        if (!in_vulnerable(savedPC)) {
+            vuln_pcs.push_back(savedPC);
+            numUniqVulnerable = vuln_pcs.size();
+            printf("Potential vulnerable window found at: 0x%08llx\n",
+                   savedPC);
         }
         currentFsmState = Q_INIT;
     }

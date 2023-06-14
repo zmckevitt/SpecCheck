@@ -481,6 +481,7 @@ class Commit
 
         /** SpecCheck TEMPORARY */
         statistics::Scalar flushedWindows;
+        statistics::Scalar uniqFlushedWindows;
         statistics::Scalar vulnWindows;
         statistics::Scalar uniqVulnWindows;
 

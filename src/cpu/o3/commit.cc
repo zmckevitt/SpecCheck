@@ -161,9 +161,10 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
                "The number of times a branch was mispredicted"),
       ADD_STAT(numCommittedDist, statistics::units::Count::get(),
                "Number of insts commited each cycle"),
-      // TEMPORARY, preprocessor flags maybe?
       ADD_STAT(flushedWindows, statistics::units::Count::get(),
                "number of flushed windows"),
+      ADD_STAT(uniqFlushedWindows, statistics::units::Count::get(),
+               "number of unique flushed windows"),
       ADD_STAT(vulnWindows, statistics::units::Count::get(),
                "number of vulnerable windows"),
       ADD_STAT(uniqVulnWindows, statistics::units::Count::get(),
@@ -1027,9 +1028,10 @@ Commit::commitInsts()
             // commitTick will not be set
             if (debug::SpecCheck) {
                 head_inst->advanceFSM();
-                stats.flushedWindows = numFlushedWindows;
-                stats.vulnWindows = numVulnWindows;
-                stats.uniqVulnWindows = numUniqWindows;
+                stats.flushedWindows = numFlushed;
+                stats.uniqFlushedWindows = numUniqFlushed;
+                stats.vulnWindows = numVulnerable;
+                stats.uniqVulnWindows = numUniqVulnerable;
             }
         } else {
             set(pc[tid], head_inst->pcState());
@@ -1040,9 +1042,10 @@ Commit::commitInsts()
             // commitTick set in commitHead
             if (debug::SpecCheck) {
                 head_inst->advanceFSM();
-                stats.flushedWindows = numFlushedWindows;
-                stats.vulnWindows = numVulnWindows;
-                stats.uniqVulnWindows = numUniqWindows;
+                stats.flushedWindows = numFlushed;
+                stats.uniqFlushedWindows = numUniqFlushed;
+                stats.vulnWindows = numVulnerable;
+                stats.uniqVulnWindows = numUniqVulnerable;
             }
 
             if (commit_success) {
