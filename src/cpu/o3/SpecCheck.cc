@@ -105,31 +105,30 @@ int consume_instruction(std::string inst,
     }
 
     if (currentFsmState == Q_INIT) {
-        clear_taint_table();
         savedPC = -1;
 
-            // beginning of misspeculation window
-            if (commit == 0) {
+        // beginning of misspeculation window
+        if (commit == 0) {
 
-                savedPC = PC;
-                numFlushed++;
+            savedPC = PC;
+            numFlushed++;
 
-                // check if flushed window is unique
-                if (!in_flushed(savedPC)) {
-                    flushed_pcs.push_back(savedPC);
-                    numUniqFlushed = flushed_pcs.size();
-                }
-
-                // Completed memroy load
-                if (is_load(staticInst) && complete != 0 && dest != 0) {
-                        set_taint(dest);
-                        currentFsmState = Q_2;
-                }
-                // Non completed memory load or non memory operation
-                else {
-                        currentFsmState = Q_1;
-                }
+            // check if flushed window is unique
+            if (!in_flushed(savedPC)) {
+                flushed_pcs.push_back(savedPC);
+                numUniqFlushed = flushed_pcs.size();
             }
+
+            // Completed memroy load
+            if (is_load(staticInst) && complete != 0 && dest != 0) {
+                    set_taint(dest);
+                    currentFsmState = Q_2;
+            }
+            // Non completed memory load or non memory operation
+            else {
+                    currentFsmState = Q_1;
+            }
+        }
 
     }
 
@@ -138,6 +137,7 @@ int consume_instruction(std::string inst,
         // Retired instruction
         // goto Q_INIT
         if (commit != 0) {
+            clear_taint_table();
             currentFsmState = Q_INIT;
         }
         // flushed instruction
@@ -157,6 +157,7 @@ int consume_instruction(std::string inst,
 
         // Retired instruction
         if (commit != 0) {
+            clear_taint_table();
             currentFsmState = Q_INIT;
         }
         // Flushed instruction
@@ -172,7 +173,8 @@ int consume_instruction(std::string inst,
             // sources are in the taint table but the instruction
             // is not micro visible, add the destination to the
             // taint table
-            else if (issue != 0 && (is_load(staticInst) ||
+            else if (complete != 0 && dest != 0 &&
+                    (is_load(staticInst) ||
                     (src1 != 0 && in_taint_table(src1)) ||
                     (src2 != 0 && in_taint_table(src2)))) {
                 set_taint(dest);
@@ -189,6 +191,7 @@ int consume_instruction(std::string inst,
             printf("Potential vulnerable window found at: 0x%08llx\n",
                    savedPC);
         }
+        clear_taint_table();
         currentFsmState = Q_INIT;
     }
 
