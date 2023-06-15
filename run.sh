@@ -12,7 +12,6 @@ EXPERIMENT="${GEM5_PATH}/configs/example/se.py" # gem5 experiment location
 
 # gem5 simulation commands
 $GEM5_PATH/build/X86/gem5.opt \
---debug-flags=SpecCheck \
 --stats-file=${args[0]} \
 $EXPERIMENT \
 --mem-size=8GB \
@@ -21,5 +20,6 @@ $EXPERIMENT \
 --l1d_size 32kB --l1d_assoc 8 --l1i_size 32kB \
 --l1i_assoc 8 --l2_size 2MB --l2_assoc 16 --l2cache --caches \
 --cmd=${args[1]} \
+--fast-forward=100000000 \
 --maxinsts=150000000
 
