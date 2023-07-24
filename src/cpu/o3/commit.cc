@@ -51,6 +51,7 @@
 #include "cpu/base.hh"
 #include "cpu/checker/cpu.hh"
 #include "cpu/exetrace.hh"
+#include "cpu/o3/SpecCheck.hh"
 #include "cpu/o3/cpu.hh"
 #include "cpu/o3/dyn_inst.hh"
 #include "cpu/o3/limits.hh"
@@ -63,6 +64,7 @@
 #include "debug/ExecFaulting.hh"
 #include "debug/HtmCpu.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/SpecCheck.hh"
 #include "params/BaseO3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
@@ -180,7 +182,15 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
       ADD_STAT(committedInstType, statistics::units::Count::get(),
                "Class of committed instruction"),
       ADD_STAT(commitEligibleSamples, statistics::units::Cycle::get(),
-               "number cycles where commit BW limit reached")
+               "number cycles where commit BW limit reached"),
+      ADD_STAT(flushedWindows, statistics::units::Count::get(),
+               "number of flushed windows"),
+      ADD_STAT(uniqFlushedWindows, statistics::units::Count::get(),
+               "number of unique flushed windows"),
+      ADD_STAT(vulnWindows, statistics::units::Count::get(),
+               "number of vulnerable windows"),
+      ADD_STAT(uniqVulnWindows, statistics::units::Count::get(),
+               "number of unique vulnerable windows")
 {
     using namespace statistics;
 
@@ -1011,6 +1021,15 @@ Commit::commitInsts()
 
             // Record that the number of ROB entries has changed.
             changedROBNumEntries[tid] = true;
+
+            if (debug::SpecCheck) {
+                head_inst->advanceFSM();
+                stats.flushedWindows = numFlushed;
+                stats.uniqFlushedWindows = numUniqFlushed;
+                stats.vulnWindows = numVulnerable;
+                stats.uniqVulnWindows = numUniqVulnerable;
+            }
+
         } else {
             set(pc[tid], head_inst->pcState());
 
@@ -1018,6 +1037,15 @@ Commit::commitInsts()
             bool commit_success = commitHead(head_inst, num_committed);
 
             if (commit_success) {
+
+                if (debug::SpecCheck) {
+                    head_inst->advanceFSM();
+                    stats.flushedWindows = numFlushed;
+                    stats.uniqFlushedWindows = numUniqFlushed;
+                    stats.vulnWindows = numVulnerable;
+                    stats.uniqVulnWindows = numUniqVulnerable;
+                }
+
                 ++num_committed;
                 stats.committedInstType[tid][head_inst->opClass()]++;
                 ppCommit->notify(head_inst);
@@ -1312,7 +1340,7 @@ Commit::commitHead(const DynInstPtr &head_inst, unsigned inst_num)
     rob->retireHead(tid);
 
 #if TRACING_ON
-    if (debug::O3PipeView) {
+    if (debug::O3PipeView || debug::SpecCheck) {
         head_inst->commitTick = curTick() - head_inst->fetchTick;
     }
 #endif

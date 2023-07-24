@@ -54,6 +54,7 @@
 #include "base/loader/symtab.hh"
 #include "base/logging.hh"
 #include "base/trace.hh"
+#include "cpu/o3/SpecCheck.hh"
 #include "debug/Loader.hh"
 #include "gelf.h"
 #include "sim/byteswap.hh"
@@ -182,6 +183,10 @@ ElfObject::ElfObject(ImageFileDataPtr ifd) : ObjectFile(ifd)
                 loader::Symbol symbol;
                 symbol.address = sym.st_value;
                 symbol.name = sym_name;
+
+                if (symbol.name == "main") {
+                    gem5::o3::encountered_main(sym.st_value, sym.st_size);
+                }
 
                 switch (GELF_ST_BIND(sym.st_info)) {
                   case STB_GLOBAL:

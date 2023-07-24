@@ -50,6 +50,7 @@
 #include "debug/Activity.hh"
 #include "debug/O3PipeView.hh"
 #include "debug/Rename.hh"
+#include "debug/SpecCheck.hh"
 #include "params/BaseO3CPU.hh"
 
 namespace gem5
@@ -794,7 +795,7 @@ Rename::sortInsts()
         const DynInstPtr &inst = fromDecode->insts[i];
         insts[inst->threadNumber].push_back(inst);
 #if TRACING_ON
-        if (debug::O3PipeView) {
+        if (debug::O3PipeView || debug::SpecCheck) {
             inst->renameTick = curTick() - inst->fetchTick;
         }
 #endif
