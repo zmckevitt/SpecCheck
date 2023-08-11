@@ -178,10 +178,7 @@ int consume_instruction(std::string inst,
             // sources are in the taint table but the instruction
             // is not micro visible, add the destination to the
             // taint table
-            else if (complete != 0 && dest != 0 &&
-                    (is_load(staticInst) ||
-                    (src1 != 0 && in_taint_table(src1)) ||
-                    (src2 != 0 && in_taint_table(src2)))) {
+            else if (complete != 0 && dest != 0 && is_load(staticInst)) {
                 set_taint(dest);
             }
         }
