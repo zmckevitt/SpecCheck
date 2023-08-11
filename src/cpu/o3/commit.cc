@@ -1023,11 +1023,11 @@ Commit::commitInsts()
             changedROBNumEntries[tid] = true;
 
             if (debug::SpecCheck) {
-                head_inst->advanceFSM();
-                stats.flushedWindows = numFlushed;
-                stats.uniqFlushedWindows = numUniqFlushed;
-                stats.vulnWindows = numVulnerable;
-                stats.uniqVulnWindows = numUniqVulnerable;
+                SC.consume_instruction(head_inst);
+                stats.flushedWindows = SC.numFlushed;
+                stats.uniqFlushedWindows = SC.numUniqFlushed;
+                stats.vulnWindows = SC.numVulnerable;
+                stats.uniqVulnWindows = SC.numUniqVulnerable;
             }
 
         } else {
@@ -1039,11 +1039,11 @@ Commit::commitInsts()
             if (commit_success) {
 
                 if (debug::SpecCheck) {
-                    head_inst->advanceFSM();
-                    stats.flushedWindows = numFlushed;
-                    stats.uniqFlushedWindows = numUniqFlushed;
-                    stats.vulnWindows = numVulnerable;
-                    stats.uniqVulnWindows = numUniqVulnerable;
+                    SC.consume_instruction(head_inst);
+                    stats.flushedWindows = SC.numFlushed;
+                    stats.uniqFlushedWindows = SC.numUniqFlushed;
+                    stats.vulnWindows = SC.numVulnerable;
+                    stats.uniqVulnWindows = SC.numUniqVulnerable;
                 }
 
                 ++num_committed;

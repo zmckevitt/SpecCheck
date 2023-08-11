@@ -43,11 +43,9 @@
 #include <algorithm>
 
 #include "base/intmath.hh"
-#include "cpu/o3/SpecCheck.hh"
 #include "debug/DynInst.hh"
 #include "debug/IQ.hh"
 #include "debug/O3PipeView.hh"
-#include "debug/SpecCheck.hh"
 
 namespace gem5
 {
@@ -260,19 +258,6 @@ DynInst::~DynInst()
 #endif
 };
 
-extern int currentFsmState;
-int counter = 0;
-extern std::map<std::string, int>registers;
-
-void
-DynInst::advanceFSM() {
-    bool issue = (issueTick == -1) ? 0 : 1;
-    bool complete = (completeTick == -1) ? 0 : 1;
-    bool commit = (commitTick == -1) ? 0 : 1;
-    unsigned long long PC = pcState().instAddr();
-    std::string inst = staticInst->disassemble(pcState().instAddr());
-    consume_instruction(inst, PC, commit, issue, complete, staticInst, this);
-}
 
 #ifdef DEBUG
 void

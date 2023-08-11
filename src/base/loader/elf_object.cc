@@ -56,6 +56,7 @@
 #include "base/trace.hh"
 #include "cpu/o3/SpecCheck.hh"
 #include "debug/Loader.hh"
+#include "debug/SpecCheck.hh"
 #include "gelf.h"
 #include "sim/byteswap.hh"
 
@@ -184,8 +185,8 @@ ElfObject::ElfObject(ImageFileDataPtr ifd) : ObjectFile(ifd)
                 symbol.address = sym.st_value;
                 symbol.name = sym_name;
 
-                if (symbol.name == "main") {
-                    gem5::o3::encountered_main(sym.st_value, sym.st_size);
+                if (debug::SpecCheck && symbol.name == "main") {
+                    SC.init(sym.st_value, sym.st_size);
                 }
 
                 switch (GELF_ST_BIND(sym.st_info)) {

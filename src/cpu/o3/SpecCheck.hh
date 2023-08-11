@@ -7,39 +7,51 @@
 
 #include "cpu/o3/dyn_inst.hh"
 
-namespace gem5 {
-
-namespace o3 {
-
-extern int numFlushed;
-extern int numUniqFlushed;
-extern int numVulnerable;
-extern int numUniqVulnerable;
-extern int currentFsmState;
-
-enum fsmStates
+class SpecCheck
 {
-        Q_INIT,
-        Q_1,
-        Q_2,
-        Q_3,
-        Q_4,
-        Q_ACC
+
+public:
+    int numFlushed;
+    int numUniqFlushed;
+    int numVulnerable;
+    int numUniqVulnerable;
+    int currentFsmState;
+
+    enum fsmStates
+    {
+            Q_INIT,
+            Q_1,
+            Q_2,
+            Q_3,
+            Q_4,
+            Q_ACC
+    };
+
+    void init(unsigned long long addr,
+                          size_t size);
+
+    int consume_instruction(gem5::o3::DynInstPtr dynInst);
+
+private:
+    unsigned long long savedPC;
+    unsigned long long mainStart;
+    unsigned long long mainEnd;
+    bool inMain;
+
+    std::vector<unsigned long long>flushed_pcs;
+    std::vector<unsigned long long>vuln_pcs;
+    std::vector<gem5::PhysRegIdPtr>taint_table;
+
+    int in_flushed(unsigned long long pc);
+    int in_vulnerable(unsigned long long pc);
+    int in_taint_table(gem5::PhysRegIdPtr);
+    void set_taint(gem5::PhysRegIdPtr);
+    void clear_taint_table();
+    int is_load(gem5::StaticInstPtr);
+    int is_micro_visible(gem5::StaticInstPtr);
+
 };
 
-void encountered_main(unsigned long long addr,
-                      size_t size);
-
-int consume_instruction(std::string inst,
-                        unsigned long long PC,
-                        bool commit,
-                        bool issue,
-                        bool complete,
-                        StaticInstPtr staticInst,
-                        DynInstPtr dynInst);
-
-
-} // namespace 03
-} // namespace gem5
+extern SpecCheck SC;
 
 #endif // __CPU_O3_SPECCHECK_HH__

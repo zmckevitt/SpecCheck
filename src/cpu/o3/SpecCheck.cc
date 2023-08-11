@@ -2,62 +2,37 @@
 
 #include "debug/SpecCheck.hh"
 
-namespace gem5 {
+// Global definition of SpecCheck FSM
+SpecCheck SC;
 
-namespace o3 {
-
-// STATS
-int numFlushed = 0;
-int numUniqFlushed = 0; // Non vulnerable
-int numVulnerable = 0;
-int numUniqVulnerable = 0;
-
-// STATE
-int currentFsmState = Q_INIT;
-unsigned long long savedPC;
-unsigned long long mainStart;
-unsigned long long mainEnd;
-bool inMain = false;
-
-// TABLES
-std::vector<unsigned long long>flushed_pcs;
-std::vector<unsigned long long>vuln_pcs;
-std::vector<PhysRegIdPtr>taint_table;
-
-int in_flushed(unsigned long long pc) {
+int SpecCheck::in_flushed(unsigned long long pc) {
     return (std::find(flushed_pcs.begin(), flushed_pcs.end(), pc)
              != flushed_pcs.end());
 }
 
-int in_vulnerable(unsigned long long pc) {
+int SpecCheck::in_vulnerable(unsigned long long pc) {
     return (std::find(vuln_pcs.begin(), vuln_pcs.end(), pc)
              != vuln_pcs.end());
 }
 
-int in_taint_table(PhysRegIdPtr reg) {
+int SpecCheck::in_taint_table(gem5::PhysRegIdPtr reg) {
     return (std::find(taint_table.begin(), taint_table.end(), reg)
              != taint_table.end());
 }
 
-void set_taint(PhysRegIdPtr reg) {
+void SpecCheck::set_taint(gem5::PhysRegIdPtr reg) {
     taint_table.push_back(reg);
 }
 
-void clear_taint_table() {
+void SpecCheck::clear_taint_table() {
     taint_table.clear();
 }
 
-int is_load(StaticInstPtr staticInst) {
+int SpecCheck::is_load(gem5::StaticInstPtr staticInst) {
     return staticInst->isLoad();
 }
 
-void encountered_main(unsigned long long addr, size_t size) {
-    mainStart = addr;
-    mainEnd = mainStart + size;
-    printf("Main found! Start: 0x%08llx, End: 0x%08llx\n", mainStart, mainEnd);
-}
-
-int is_micro_visible(StaticInstPtr staticInst) {
+int SpecCheck::is_micro_visible(gem5::StaticInstPtr staticInst) {
     return (staticInst->isLoad() ||
             staticInst->isStore() ||
             staticInst->isFloating() ||
@@ -66,15 +41,27 @@ int is_micro_visible(StaticInstPtr staticInst) {
             staticInst->isReturn());
 }
 
-void _break() {}
+void SpecCheck::init(unsigned long long addr, size_t size) {
 
-int consume_instruction(std::string inst,
-            unsigned long long PC,
-            bool commit,
-            bool issue,
-            bool complete,
-            StaticInstPtr staticInst,
-            DynInstPtr dynInst) {
+    numFlushed = 0;
+    numUniqFlushed = 0;
+    numVulnerable = 0;
+    numUniqVulnerable = 0;
+
+    mainStart = addr;
+    mainEnd = mainStart + size;
+    printf("Main found! Start: 0x%08llx, End: 0x%08llx\n", mainStart, mainEnd);
+}
+
+int SpecCheck::consume_instruction(gem5::o3::DynInstPtr dynInst) {
+
+    bool issue = (dynInst->issueTick == -1) ? 0 : 1;
+    bool complete = (dynInst->completeTick == -1) ? 0 : 1;
+    bool commit = (dynInst->commitTick == -1) ? 0 : 1;
+    unsigned long long PC = dynInst->pcState().instAddr();
+    std::string inst = dynInst->staticInst->disassemble(
+        dynInst->pcState().instAddr());
+    gem5::StaticInstPtr staticInst = dynInst->staticInst;
 
     // Only run if we have started the main fn
     if (PC == mainStart) {
@@ -90,9 +77,9 @@ int consume_instruction(std::string inst,
     size_t numSrcs = dynInst->numSrcs();
     size_t numDsts = dynInst->numDests();
 
-    PhysRegIdPtr dest = 0;
-    PhysRegIdPtr src1 = 0;
-    PhysRegIdPtr src2 = 0;
+    gem5::PhysRegIdPtr dest = 0;
+    gem5::PhysRegIdPtr src1 = 0;
+    gem5::PhysRegIdPtr src2 = 0;
 
     if (numDsts > 0)
         dest = dynInst->renamedDestIdx(0);
@@ -120,13 +107,11 @@ int consume_instruction(std::string inst,
 
             // Completed memroy load
             if (is_load(staticInst) && complete != 0 && dest != 0) {
-                    _break();
                     set_taint(dest);
                     currentFsmState = Q_2;
             }
             // Non completed memory load or non memory operation
             else {
-                    _break();
                     currentFsmState = Q_1;
             }
         }
@@ -138,7 +123,6 @@ int consume_instruction(std::string inst,
         // Retired instruction
         // goto Q_INIT
         if (commit != 0) {
-            _break();
             clear_taint_table();
             currentFsmState = Q_INIT;
         }
@@ -148,7 +132,6 @@ int consume_instruction(std::string inst,
             // add destination register to register array
             // goto Q_2
             if (is_load(staticInst) && complete != 0 && dest != 0) {
-                _break();
                 set_taint(dest);
                 currentFsmState = Q_2;
             }
@@ -160,7 +143,6 @@ int consume_instruction(std::string inst,
 
         // Retired instruction
         if (commit != 0) {
-            _break();
             clear_taint_table();
             currentFsmState = Q_INIT;
         }
@@ -171,13 +153,9 @@ int consume_instruction(std::string inst,
             if (issue!= 0 && is_micro_visible(staticInst) &&
                ((src1 != 0 && in_taint_table(src1)) ||
                (src2 != 0 && in_taint_table(src2)))) {
-                _break();
                 currentFsmState = Q_ACC;
             }
-            // If instruction is a load OR either of its
-            // sources are in the taint table but the instruction
-            // is not micro visible, add the destination to the
-            // taint table
+            // If instruction is a CLoad, add dest to taint table
             else if (complete != 0 && dest != 0 && is_load(staticInst)) {
                 set_taint(dest);
             }
@@ -199,6 +177,3 @@ int consume_instruction(std::string inst,
 
     return 0;
 }
-
-} // namespace o3
-} // namespace gem5
