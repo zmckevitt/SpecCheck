@@ -7,6 +7,8 @@
 
 #include "cpu/o3/dyn_inst.hh"
 
+#define SC_OUT "./m5out/SpecCheck.out"
+
 class SpecCheck
 {
 
@@ -22,11 +24,11 @@ public:
             Q_INIT,
             Q_1,
             Q_2,
-            Q_3,
-            Q_4,
             Q_ACC
     };
 
+    // Initialize SpecCheck when we encounter main
+    // Specify main starting address and section length
     void init(unsigned long long addr,
                           size_t size);
 

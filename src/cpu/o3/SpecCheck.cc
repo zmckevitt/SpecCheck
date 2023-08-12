@@ -51,6 +51,11 @@ void SpecCheck::init(unsigned long long addr, size_t size) {
     mainStart = addr;
     mainEnd = mainStart + size;
     printf("Main found! Start: 0x%08llx, End: 0x%08llx\n", mainStart, mainEnd);
+
+    // Remove out file
+    std::ofstream sc_out;
+    sc_out.open(SC_OUT, std::ofstream::out);
+    sc_out.close();
 }
 
 int SpecCheck::consume_instruction(gem5::o3::DynInstPtr dynInst) {
@@ -168,8 +173,14 @@ int SpecCheck::consume_instruction(gem5::o3::DynInstPtr dynInst) {
         if (!in_vulnerable(savedPC)) {
             vuln_pcs.push_back(savedPC);
             numUniqVulnerable = vuln_pcs.size();
-            printf("Potential vulnerable window found at: 0x%08llx\n",
-                   savedPC);
+
+            std::ofstream sc_out;
+            sc_out.open(SC_OUT, std::ofstream::out | std::ofstream::app);
+            sc_out << std::hex << savedPC << std::endl;
+            sc_out.close();
+
+            // printf("Potential vulnerable window found at: 0x%08llx\n",
+            //        savedPC);
         }
         clear_taint_table();
         currentFsmState = Q_INIT;
