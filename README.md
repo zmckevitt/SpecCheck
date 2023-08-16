@@ -4,7 +4,7 @@ This repository contains a fork of gem5 with SpecCheck implementation. SpecCheck
 
 ## Building
 
-To build SpecCHeck gem5, first clone the repository and checkout the ```SpecCheckPACT``` branch:
+To build SpecCheck gem5, first clone the repository and checkout the ```SpecCheckPACT``` branch:
 
 ```
 git clone https://github.com/zmckevitt/gem5.git
