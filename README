@@ -1,43 +1,59 @@
-This is the gem5 simulator.
+# SpecCheck
 
-The main website can be found at http://www.gem5.org
+This repository contains a fork of gem5 with SpecCheck implementation. SpecCheck is a debugging module for O3CPUs to determine the presence of potential transient execution vulnerabilities.
 
-A good starting point is http://www.gem5.org/about, and for
-more information about building the simulator and getting started
-please see http://www.gem5.org/documentation and
-http://www.gem5.org/documentation/learning_gem5/introduction.
+## Building
 
-To build gem5, you will need the following software: g++ or clang,
-Python (gem5 links in the Python interpreter), SCons, zlib, m4, and lastly
-protobuf if you want trace capture and playback support. Please see
-http://www.gem5.org/documentation/general_docs/building for more details
-concerning the minimum versions of these tools.
+To build SpecCHeck gem5, first clone the repository and checkout the ```SpecCheckPACT``` branch:
 
-Once you have all dependencies resolved, type 'scons
-build/<CONFIG>/gem5.opt' where CONFIG is one of the options in build_opts like
-ARM, NULL, MIPS, POWER, SPARC, X86, Garnet_standalone, etc. This will build an
-optimized version of the gem5 binary (gem5.opt) with the the specified
-configuration. See http://www.gem5.org/documentation/general_docs/building for
-more details and options.
+```
+git clone https://github.com/zmckevitt/gem5.git
+cd gem5/
+git checkout SpecCheckPACT
+```
 
-The main source tree includes these subdirectories:
-   - build_opts: pre-made default configurations for gem5
-   - build_tools: tools used internally by gem5's build process.
-   - configs: example simulation configuration scripts
-   - ext: less-common external packages needed to build gem5
-   - include: include files for use in other programs
-   - site_scons: modular components of the build system
-   - src: source code of the gem5 simulator
-   - system: source for some optional system software for simulated systems
-   - tests: regression tests
-   - util: useful utility programs and files
+Next, ensure that your system has scons:
 
-To run full-system simulations, you may need compiled system firmware, kernel
-binaries and one or more disk images, depending on gem5's configuration and
-what type of workload you're trying to run. Many of those resources can be
-downloaded from http://resources.gem5.org, and/or from the git repository here:
-https://gem5.googlesource.com/public/gem5-resources/
+```
+sudo apt install scons
+```
 
-If you have questions, please send mail to gem5-users@gem5.org
+And lastly build the x86 gem5 model:
 
-Enjoy using gem5 and please share your modifications and extensions.
+```
+scons build/X86/gem5.opt -j$(nproc)
+```
+
+## Running
+
+The ```pocs/``` directory contains proof of concept binaies for Spectre variant 1 (Pattern History Table), variant 2 (Branch Target Buffer), variant 3 (Retun Stack Buffer), and variant 4 (Store to Load Forwarding). Each proof of concept was compiled on x86 Ubuntu 20.04 and statically linked. More information about each proof of concept can be found in ```POCs.md```.
+
+While in the gem5 directory, save the current working directory to an environment variable to be used in runner scripts:
+
+```
+export GEM5_PATH=$(pwd)
+```
+
+To run gem5 with SpecCheck enabled, use the ```sc.sh``` script:
+
+```
+bash sc.sh <stats file> <path to binary>
+```
+
+So, to run SpecCheck on Spectre variant 1:
+
+```
+bash sc.sh v1.txt pocs/spectre_v1
+```
+
+The stats file specified will be located in ```m5out/``` under the name supplied to the runner file. ```m5out/SpecCheck.out``` contains all program counters flagged as potentially malicious during the experiments duration.
+
+To run standard gem5 without SpecCheck, use ```run.sh```:
+
+```
+bash run.sh <stats file> <path to binary>
+```
+
+## gem5 Configuration
+
+Each experiment is configured to run using an x86 O3CPU in gem5's systemcall emulation mode. Each experiment uses the configuration available in ```configs/examples/se.py```, with 8GB of memory. More details about each experiments configuration can be found in ```sc.sh```.

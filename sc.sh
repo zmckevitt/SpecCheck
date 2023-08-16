@@ -7,7 +7,6 @@ then
     echo "Use: bash sc.sh <stats-file> <path-to-binary>"
     exit
 fi
-GEM5_PATH="/home/zamc2229/gem5" # path to gem5 project
 EXPERIMENT="${GEM5_PATH}/configs/example/se.py" # gem5 experiment location
 
 # gem5 simulation commands
