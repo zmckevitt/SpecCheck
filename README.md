@@ -1,5 +1,7 @@
 # SpecCheck
 
+[![DOI](https://zenodo.org/badge/545755894.svg)](https://zenodo.org/badge/latestdoi/545755894)
+
 This repository contains a fork of gem5 with SpecCheck implementation. SpecCheck is a debugging module for O3CPUs to determine the presence of potential transient execution vulnerabilities.
 
 ## Building
