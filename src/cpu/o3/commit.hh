@@ -507,10 +507,10 @@ class Commit
         /** Number of cycles where the commit bandwidth limit is reached. */
         statistics::Scalar commitEligibleSamples;
 
-        statistics::Scalar flushedWindows;
-        statistics::Scalar uniqFlushedWindows;
-        statistics::Scalar vulnWindows;
-        statistics::Scalar uniqVulnWindows;
+        statistics::Scalar speccheckFlushedWindows;
+        statistics::Scalar speccheckUniqFlushedWindows;
+        statistics::Scalar speccheckVulnWindows;
+        statistics::Scalar speccheckUniqVulnWindows;
     } stats;
 };
 

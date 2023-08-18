@@ -183,13 +183,13 @@ Commit::CommitStats::CommitStats(CPU *cpu, Commit *commit)
                "Class of committed instruction"),
       ADD_STAT(commitEligibleSamples, statistics::units::Cycle::get(),
                "number cycles where commit BW limit reached"),
-      ADD_STAT(flushedWindows, statistics::units::Count::get(),
+      ADD_STAT(speccheckFlushedWindows, statistics::units::Count::get(),
                "number of flushed windows"),
-      ADD_STAT(uniqFlushedWindows, statistics::units::Count::get(),
+      ADD_STAT(speccheckUniqFlushedWindows, statistics::units::Count::get(),
                "number of unique flushed windows"),
-      ADD_STAT(vulnWindows, statistics::units::Count::get(),
+      ADD_STAT(speccheckVulnWindows, statistics::units::Count::get(),
                "number of vulnerable windows"),
-      ADD_STAT(uniqVulnWindows, statistics::units::Count::get(),
+      ADD_STAT(speccheckUniqVulnWindows, statistics::units::Count::get(),
                "number of unique vulnerable windows")
 {
     using namespace statistics;
@@ -1024,10 +1024,10 @@ Commit::commitInsts()
 
             if (debug::SpecCheck) {
                 SC.consume_instruction(head_inst);
-                stats.flushedWindows = SC.numFlushed;
-                stats.uniqFlushedWindows = SC.numUniqFlushed;
-                stats.vulnWindows = SC.numVulnerable;
-                stats.uniqVulnWindows = SC.numUniqVulnerable;
+                stats.speccheckFlushedWindows = SC.numFlushed;
+                stats.speccheckUniqFlushedWindows = SC.numUniqFlushed;
+                stats.speccheckVulnWindows = SC.numVulnerable;
+                stats.speccheckUniqVulnWindows = SC.numUniqVulnerable;
             }
 
         } else {
@@ -1040,10 +1040,10 @@ Commit::commitInsts()
 
                 if (debug::SpecCheck) {
                     SC.consume_instruction(head_inst);
-                    stats.flushedWindows = SC.numFlushed;
-                    stats.uniqFlushedWindows = SC.numUniqFlushed;
-                    stats.vulnWindows = SC.numVulnerable;
-                    stats.uniqVulnWindows = SC.numUniqVulnerable;
+                    stats.speccheckFlushedWindows = SC.numFlushed;
+                    stats.speccheckUniqFlushedWindows = SC.numUniqFlushed;
+                    stats.speccheckVulnWindows = SC.numVulnerable;
+                    stats.speccheckUniqVulnWindows = SC.numUniqVulnerable;
                 }
 
                 ++num_committed;
