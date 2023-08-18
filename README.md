@@ -46,8 +46,6 @@ So, to run SpecCheck on Spectre variant 1:
 bash sc.sh v1.txt pocs/spectre_v1
 ```
 
-The stats file specified will be located in ```m5out/``` under the name supplied to the runner file. ```m5out/SpecCheck.out``` contains all program counters flagged as potentially malicious during the experiments duration.
-
 To run standard gem5 without SpecCheck, use ```run.sh```:
 
 ```
@@ -57,3 +55,7 @@ bash run.sh <stats file> <path to binary>
 ## gem5 Configuration
 
 Each experiment is configured to run using an x86 O3CPU in gem5's systemcall emulation mode. Each experiment uses the configuration available in ```configs/examples/se.py```, with 8GB of memory. More details about each experiments configuration can be found in ```sc.sh```.
+
+## Statistics
+
+The stats file given to the runner script will be located in ```m5out/``` and contains standard gem5 statistics with additional SpecCheck specific commit statistics (prefixed with ```speccheck```). SpecCheck saves all program counters flagged as potentially malicious during the experiments duration to ```m5out/<specified file>.scout```.
