@@ -8,11 +8,12 @@ then
     exit
 fi
 EXPERIMENT="${GEM5_PATH}/configs/example/se.py" # gem5 experiment location
+STATFILE=${args[0]}
 
 # gem5 simulation commands
 $GEM5_PATH/build/X86/gem5.opt \
 --debug-flags=SpecCheck \
---stats-file=${args[0]} \
+--stats-file=$STATFILE \
 $EXPERIMENT \
 --mem-size=8GB \
 --cpu-type=DerivO3CPU \
@@ -21,3 +22,6 @@ $EXPERIMENT \
 --l1i_assoc 8 --l2_size 2MB --l2_assoc 16 --l2cache --caches \
 --cmd=${args[1]} \
 --maxinsts=150000000
+
+OUTFILE="$GEM5_PATH/m5out/$STATFILE.scout"
+mv $GEM5_PATH/m5out/SpecCheck.out $OUTFILE
