@@ -28,7 +28,7 @@ scons build/X86/gem5.opt -j$(nproc)
 
 ## Running
 
-The ```pocs/``` directory contains proof of concept binaies for Spectre variant 1 (Pattern History Table), variant 2 (Branch Target Buffer), variant 3 (Retun Stack Buffer), and variant 4 (Store to Load Forwarding). Each proof of concept was compiled on x86 Ubuntu 20.04 and statically linked. More information about each proof of concept can be found in ```POCs.md```.
+The ```pocs/``` directory contains proof of concepts for Spectre variant 1 (Pattern History Table), variant 2 (Branch Target Buffer), variant 3 (Retun Stack Buffer), and variant 4 (Store to Load Forwarding). Each proof of concept was also precompiled on x86 Ubuntu 20.04 and statically linked, and these binaries can be found in ```pocs/precompiled/```.
 
 While in the gem5 directory, save the current working directory to an environment variable to be used in runner scripts:
 
@@ -42,10 +42,10 @@ To run gem5 with SpecCheck enabled, use the ```sc.sh``` script:
 bash sc.sh <stats file> <path to binary>
 ```
 
-So, to run SpecCheck on Spectre variant 1:
+So, to run SpecCheck on the precompiled POC for Spectre variant 1:
 
 ```
-bash sc.sh v1.txt pocs/spectre_v1
+bash sc.sh v1.txt pocs/precompiled/spectre_v1_x86
 ```
 
 To run standard gem5 without SpecCheck, use ```run.sh```:
