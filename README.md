@@ -42,10 +42,11 @@ To run gem5 with SpecCheck enabled, use the ```sc.sh``` script:
 bash sc.sh <stats file> <path to binary>
 ```
 
-So, to run SpecCheck on the precompiled POC for Spectre variant 1:
+So, to run SpecCheck on the precompiled POC for Spectre variants 1 and 2:
 
 ```
-bash sc.sh v1.txt pocs/precompiled/spectre_v1_x86
+bash sc.sh v1.txt pocs/spectre_v1_x86
+bash sc.sh v2.txt pocs/spectre_v2_x86
 ```
 
 To run standard gem5 without SpecCheck, use ```run.sh```:
