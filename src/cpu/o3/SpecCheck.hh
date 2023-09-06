@@ -17,6 +17,14 @@ public:
     int numUniqFlushed;
     int numVulnerable;
     int numUniqVulnerable;
+
+    // Initialize SpecCheck and stats
+    SpecCheck();
+
+    int consume_instruction(gem5::o3::DynInstPtr dynInst);
+
+private:
+    unsigned long long savedPC;
     int currentFsmState;
 
     enum fsmStates
@@ -27,31 +35,20 @@ public:
             Q_ACC
     };
 
-    // Initialize SpecCheck when we encounter main
-    // Specify main starting address and section length
-    void init(unsigned long long addr,
-                          size_t size);
-
-    int consume_instruction(gem5::o3::DynInstPtr dynInst);
-
-private:
-    unsigned long long savedPC;
-    unsigned long long mainStart;
-    unsigned long long mainEnd;
-    bool inMain;
-
+    std::vector<std::string>gadget_components;
     std::vector<unsigned long long>flushed_pcs;
     std::vector<unsigned long long>vuln_pcs;
     std::vector<gem5::PhysRegIdPtr>taint_table;
 
     int in_flushed(unsigned long long pc);
     int in_vulnerable(unsigned long long pc);
-    int in_taint_table(gem5::PhysRegIdPtr);
+    int in_taint_table(gem5::PhysRegIdPtr, gem5::PhysRegIdPtr, size_t);
     void set_taint(gem5::PhysRegIdPtr);
+    void remove_taint(gem5::PhysRegIdPtr);
     void clear_taint_table();
-    int is_load(gem5::StaticInstPtr);
-    int is_micro_visible(gem5::StaticInstPtr);
-
+    int is_load(gem5::StaticInstPtr, std::string inst);
+    int is_micro_visible(gem5::StaticInstPtr, std::string);
+    void log_components();
 };
 
 extern SpecCheck SC;

@@ -15,11 +15,12 @@ $GEM5_PATH/build/X86/gem5.opt \
 --debug-flags=SpecCheck \
 --stats-file=$STATFILE \
 $EXPERIMENT \
+--indirect-bp-type=SimpleIndirectPredictor \
 --mem-size=8GB \
 --cpu-type=DerivO3CPU \
 --cpu-clock 2GHz --sys-clock 2GHz \
 --l1d_size 32kB --l1d_assoc 8 --l1i_size 32kB \
---l1i_assoc 8 --l2_size 2MB --l2_assoc 16 --l2cache --caches \
+--l1i_assoc 8 --l2_size 256kB --l2_assoc 16 --l2cache --caches \
 --cmd=${args[1]} \
 --maxinsts=150000000
 

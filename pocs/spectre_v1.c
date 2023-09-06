@@ -38,7 +38,7 @@ uint8_t array1[160] = {
 uint8_t unused2[64];
 uint8_t array2[256 * 512];
 
-char * secret = "The Magic Words are Squeamish Ossifrage.";
+char * secret = "SECRET";
 
 uint8_t temp = 0; /* Used so compiler won’t optimize out victim_function() */
 
@@ -120,7 +120,7 @@ void readMemoryByte(size_t malicious_x, uint8_t value[2], int score[2]) {
 int main(int argc,
   const char * * argv) {
   size_t malicious_x = (size_t)(secret - (char * ) array1); /* default for malicious_x */
-  int i, score[2], len = 40;
+  int i, score[2], len = 6;
   uint8_t value[2];
 
   for (i = 0; i < sizeof(array2); i++)
@@ -140,11 +140,7 @@ int main(int argc,
       (value[0] > 31 && value[0] < 127 ? value[0] : "?"), score[0]);
     if (score[1] > 0)
       printf("(second best: 0x%02X score=%d)", value[1], score[1]);
-    else {
-      printf("\n");
-      printf("Success!\n");
-      exit(0);
-    }
+    printf("\n");
   }
   return (0);
 }
