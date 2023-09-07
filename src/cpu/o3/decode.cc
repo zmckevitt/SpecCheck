@@ -48,6 +48,7 @@
 #include "debug/Activity.hh"
 #include "debug/Decode.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/SpecCheck.hh"
 #include "params/BaseO3CPU.hh"
 #include "sim/full_system.hh"
 
@@ -687,7 +688,7 @@ Decode::decodeInsts(ThreadID tid)
         --insts_available;
 
 #if TRACING_ON
-        if (debug::O3PipeView) {
+        if (debug::O3PipeView || debug::SpecCheck) {
             inst->decodeTick = curTick() - inst->fetchTick;
         }
 #endif

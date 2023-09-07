@@ -56,6 +56,7 @@
 #include "debug/Drain.hh"
 #include "debug/IEW.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/SpecCheck.hh"
 #include "params/BaseO3CPU.hh"
 
 namespace gem5
@@ -1564,7 +1565,7 @@ IEW::updateExeInstStats(const DynInstPtr& inst)
     iewStats.executedInstStats.numInsts++;
 
 #if TRACING_ON
-    if (debug::O3PipeView) {
+    if (debug::O3PipeView || debug::SpecCheck) {
         inst->completeTick = curTick() - inst->fetchTick;
     }
 #endif

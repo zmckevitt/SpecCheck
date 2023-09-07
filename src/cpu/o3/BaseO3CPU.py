@@ -148,7 +148,7 @@ class BaseO3CPU(BaseCPU):
         4, "Number of places to shift addr before check"
     )
     LSQCheckLoads = Param.Bool(
-        True,
+        False,
         "Should dependency violations be checked for "
         "loads & stores or just stores",
     )

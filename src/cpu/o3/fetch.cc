@@ -61,6 +61,7 @@
 #include "debug/Fetch.hh"
 #include "debug/O3CPU.hh"
 #include "debug/O3PipeView.hh"
+#include "debug/SpecCheck.hh"
 #include "mem/packet.hh"
 #include "params/BaseO3CPU.hh"
 #include "sim/byteswap.hh"
@@ -1276,7 +1277,7 @@ Fetch::fetch(bool &status_change)
             numInst++;
 
 #if TRACING_ON
-            if (debug::O3PipeView) {
+            if (debug::O3PipeView || debug::SpecCheck) {
                 instruction->fetchTick = curTick();
             }
 #endif
