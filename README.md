@@ -9,9 +9,8 @@ This repository contains a fork of gem5 with SpecCheck implementation. SpecCheck
 To build SpecCheck gem5, first clone the repository and checkout the ```SpecCheckPACT``` branch:
 
 ```
-git clone https://github.com/zmckevitt/gem5.git
-cd gem5/
-git checkout SpecCheckPACT
+git clone https://github.com/zmckevitt/SpecCheck.git
+cd SpecCheck/
 ```
 
 Next, ensure that your system has scons:
@@ -28,9 +27,9 @@ scons build/X86/gem5.opt -j$(nproc)
 
 ## Running
 
-The ```pocs/``` directory contains proof of concepts for Spectre variant 1 (Pattern History Table), variant 2 (Branch Target Buffer), variant 3 (Retun Stack Buffer), and variant 4 (Store to Load Forwarding). Each proof of concept was also precompiled on x86 Ubuntu 20.04 and statically linked, and these binaries can be found in ```pocs/precompiled/```.
+The ```pocs/``` directory contains proof of concepts for Spectre variant 1 (Pattern History Table) and variant 2 (Branch Target Buffer). Each proof of concept was also precompiled on x86 Ubuntu 20.04 and statically linked, and these binaries can be found precompiled in ```pocs/```.
 
-While in the gem5 directory, save the current working directory to an environment variable to be used in runner scripts:
+While in the SpecCheck directory, save the current working directory to an environment variable to be used in runner scripts:
 
 ```
 export GEM5_PATH=$(pwd)
