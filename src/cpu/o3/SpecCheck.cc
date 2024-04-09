@@ -4,6 +4,8 @@
 
 #define KNOWN(X) (false)
 
+#define X86
+
 gem5::o3::DynInstPtr prev;
 
 // Global definition of SpecCheck FSM
@@ -66,8 +68,21 @@ void SpecCheck::clear_taint_table() {
     gadget_components.clear();
 }
 
-int SpecCheck::is_load(gem5::StaticInstPtr staticInst, std::string inst) {
+int SpecCheck::is_load_x86(gem5::StaticInstPtr staticInst, std::string inst) {
     return staticInst->isLoad() && inst.find("DS:[") != std::string::npos;
+}
+
+int SpecCheck::is_load_generic
+    (gem5::StaticInstPtr staticInst, std::string inst) {
+    return staticInst->isLoad();
+}
+
+int SpecCheck::is_load(gem5::StaticInstPtr staticInst, std::string inst) {
+    #ifdef X86
+    return is_load_x86(staticInst, inst);
+    #else
+    return is_load_generic(staticInst, inst);
+    #endif
 }
 
 int SpecCheck::is_micro_visible(gem5::StaticInstPtr staticInst,
@@ -273,7 +288,6 @@ int SpecCheck::consume_instruction(gem5::o3::DynInstPtr dynInst) {
     }
 
     if (currentFsmState == Q_ACC) {
-        numVulnerable++;
         // Check if misspeculated window is not already in list
         if (!in_vulnerable(savedPC)) {
             vuln_pcs.push_back(savedPC);
@@ -292,6 +306,7 @@ int SpecCheck::consume_instruction(gem5::o3::DynInstPtr dynInst) {
 
         // End of misspeculation window
         if (commit != 0) {
+            numVulnerable++;
             clear_taint_table();
             currentFsmState = Q_INIT;
         }

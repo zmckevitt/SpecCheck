@@ -46,6 +46,8 @@ private:
     void set_taint(gem5::PhysRegIdPtr);
     void remove_taint(gem5::PhysRegIdPtr);
     void clear_taint_table();
+    int is_load_generic(gem5::StaticInstPtr, std::string inst);
+    int is_load_x86(gem5::StaticInstPtr, std::string inst);
     int is_load(gem5::StaticInstPtr, std::string inst);
     int is_micro_visible(gem5::StaticInstPtr, std::string);
     void log_components();
